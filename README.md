@@ -12,7 +12,7 @@ To initialize the workspace folder (`asset-tracker-template`) where the firmware
 
 ```shell
 # Initialize asset-tracker-template workspace
-west init -m https://github.com/nrfconnect/Asset-Tracker-Template.git --mr main asset-tracker-template
+west init -m https://github.com/IES2609/att.git --mr main asset-tracker-template
 
 cd asset-tracker-template
 
