@@ -58,3 +58,12 @@
 		};
 	};
 };
+
+&accelermoeter_hp {
+	status = "okay";
+}
+
+&accelerometer_lp {
+	status = "okay";
+}
+
