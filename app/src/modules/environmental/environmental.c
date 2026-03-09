@@ -15,6 +15,8 @@
 #include "app_common.h"
 #include "environmental.h"
 
+#define FS 100 /* Sampling frequency in milliseconds */
+
 /* Register log module */
 LOG_MODULE_REGISTER(environmental, CONFIG_APP_ENVIRONMENTAL_LOG_LEVEL);
 
@@ -68,6 +70,15 @@ struct environmental_state_object {
 	double temperature;
 	double pressure;
 	double humidity;
+
+	const struct device *const bmi270;
+
+	double accel_hp[3];
+	double gyro_hp[3];
+
+	const struct device *const adxl367;
+
+	double accel_lp[3];
 };
 
 /* Forward declarations of state handlers */
@@ -78,12 +89,19 @@ static const struct smf_state states[] = {
 	[STATE_RUNNING] = SMF_CREATE_STATE(NULL, state_running_run, NULL, NULL, NULL),
 };
 
+/* Define interrupt handlers*/
+
+
+
 static void sample_sensors(const struct device *const bme680)
 {
 	int err;
 	struct sensor_value temp = { 0 };
 	struct sensor_value press = { 0 };
 	struct sensor_value humidity = { 0 };
+	struct sensor_value accel_hp[3] = { 0 };
+	struct sensor_value gyro_hp[3] = { 0 };
+	struct sensor_value accel_lp[3] = { 0 };
 
 	err = sensor_sample_fetch(bme680);
 	if (err) {

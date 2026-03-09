@@ -48,6 +48,15 @@ struct environmental_msg {
 	/** Contains the current pressure in Pa. */
 	double pressure;
 
+	/** Contains the current acceleration values in g. */
+	double accel_hp[3];
+
+	/** Contains the current gyroscope values in dps. */
+	double gyro_hp[3];
+
+	/** Contains the current low-pass filtered acceleration values in g. */
+	double accel_lp[3];
+
 	/** Timestamp when the sample was taken in milliseconds.
 	 *  This is either:
 	 * - Unix time in milliseconds if the system clock was synchronized at sampling time, or
