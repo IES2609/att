@@ -2,8 +2,6 @@
 
 **Getting started**
 
-## Workspace initialization
-
 Before initializing, start the toolchain environment:
 
 ```shell
