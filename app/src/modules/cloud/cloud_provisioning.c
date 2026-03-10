@@ -37,7 +37,7 @@ static void nrf_provisioning_callback(const struct nrf_provisioning_callback_dat
 		return;
 	case NRF_PROVISIONING_EVENT_NEED_LTE_ACTIVATED:
 		LOG_WRN("nRF Provisioning requires device to activate LTE");
-
+		/*
 		nw_msg = NETWORK_CONNECT;
 
 		err = zbus_chan_pub(&network_chan, &nw_msg, PUB_TIMEOUT);
@@ -45,7 +45,7 @@ static void nrf_provisioning_callback(const struct nrf_provisioning_callback_dat
 			LOG_ERR("zbus_chan_pub, error: %d", err);
 			SEND_FATAL_ERROR();
 		}
-
+		*/
 		return;
 	case NRF_PROVISIONING_EVENT_DONE:
 		LOG_DBG("Provisioning finished");
