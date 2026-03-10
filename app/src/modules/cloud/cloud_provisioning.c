@@ -37,6 +37,7 @@ static void nrf_provisioning_callback(const struct nrf_provisioning_callback_dat
 		return;
 	case NRF_PROVISIONING_EVENT_NEED_LTE_ACTIVATED:
 		LOG_WRN("nRF Provisioning requires device to activate LTE");
+		LOF_INF("Network will be connected when button is pressed");
 		/*
 		nw_msg = NETWORK_CONNECT;
 

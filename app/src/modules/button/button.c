@@ -12,6 +12,7 @@
 
 #include "app_common.h"
 #include "button.h"
+#include "led.h"
 
 /* Register log module */
 LOG_MODULE_REGISTER(button, CONFIG_APP_BUTTON_LOG_LEVEL);
@@ -53,7 +54,26 @@ static void long_press_work_handler(struct k_work *work)
 		if (err) {
 			LOG_ERR("zbus_chan_pub long press, error: %d", err);
 			SEND_FATAL_ERROR();
+			return;
 		}
+
+		struct led_msg led_msg = {
+		.type = LED_RGB_SET,
+		.red = 255,
+		.green = 0,
+		.blue = 255,
+		.duration_on_msec = 500,
+		.duration_off_msec = 500,
+		.repetitions = 20,
+		};
+
+		err = zbus_chan_pub(&led_chan, &led_msg, PUB_TIMEOUT);
+		if (err) {
+			LOG_ERR("zbus_chan_pub LED Network message, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+
 	}
 }
 

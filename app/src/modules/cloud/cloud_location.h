@@ -7,7 +7,7 @@
 #ifndef _CLOUD_LOCATION_H_
 #define _CLOUD_LOCATION_H_
 
-#include "location.h"
+//#include "location.h"
 
 #ifdef __cplusplus
 extern "C" {

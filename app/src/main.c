@@ -19,7 +19,7 @@
 #include "network.h"
 #include "cloud.h"
 #include "fota.h"
-#include "location.h"
+//#include "location.h"
 #include "storage.h"
 #include "cbor_helper.h"
 
@@ -960,6 +960,29 @@ static enum smf_state_result disconnected_run(void *o)
 		}
 	}
 
+	//detects long button press to trigger LTE connection 
+	if (state_object->chan == &button_chan) {
+		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
+
+		if (button_msg.type == BUTTON_PRESS_LONG) {
+			int err;
+			struct network_msg net_msg = {
+				.type = NETWORK_CONNECT,
+			};
+
+			err = zbus_chan_pub(&network_chan, &net_msg, PUB_TIMEOUT);
+			if (err) {
+				LOG_ERR("Failed to publish NETWORK_CONNECT, err: %d", err);
+				SEND_FATAL_ERROR();
+				return SMF_EVENT_HANDLED;
+			}
+
+			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED]);
+
+			return SMF_EVENT_HANDLED;
+		}
+	}
+
 	/* Restart cloud send timer while disconnected */
 	if (state_object->chan == &timer_chan &&
 	    MSG_TO_TIMER_TYPE(state_object->msg_buf) == TIMER_EXPIRED_CLOUD) {
@@ -969,14 +992,6 @@ static enum smf_state_result disconnected_run(void *o)
 		return SMF_EVENT_HANDLED;
 	}
 
-	/* Ignore send trigers when disconnected */
-	if (state_object->chan == &button_chan) {
-		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
-
-		if (button_msg.type == BUTTON_PRESS_LONG) {
-			return SMF_EVENT_HANDLED;
-		}
-	}
 
 	if (state_object->chan == &storage_chan) {
 		const struct storage_msg *msg = MSG_TO_STORAGE_MSG_PTR(state_object->msg_buf);
