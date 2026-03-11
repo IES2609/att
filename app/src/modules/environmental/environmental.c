@@ -74,25 +74,25 @@ struct environmental_state_object {
 	const struct device *const bme680;
 
 	/* Sensor values */
-	double temperature;
-	double pressure;
-	double humidity;
+	int16_t temperature;
+	int16_t pressure;
+	int16_t humidity;
 
 	const struct device *const bmi270;
 
-	double accel_hp[3];
-	double gyro_hp[3];
+	float accel_hp[3];
+	float gyro_hp[3];
 
 	const struct device *const adxl367;
 
-	double accel_lp[3];
+	float accel_lp[3];
 };
 
 /* Sample data structure for storing in FIFO */
 struct sensor_sample {
-	double accel_hp[3];
-	double gyro_hp[3];
-	double accel_lp[3];
+	float accel_hp[3];
+	float gyro_hp[3];
+	float accel_lp[3];
 	int64_t timestamp;
 };
 

@@ -40,22 +40,22 @@ struct environmental_msg {
 	enum environmental_msg_type type;
 
 	/** Contains the current temperature in celsius. */
-	double temperature;
+	uint16_t temperature;
 
 	/** Contains the current humidity in percentage. */
-	double humidity;
+	uint16_t humidity;
 
 	/** Contains the current pressure in Pa. */
-	double pressure;
+	uint16_t pressure;
 
 	/** Contains the current acceleration values in g. */
-	double accel_hp[3];
+	float accel_hp[3];
 
 	/** Contains the current gyroscope values in dps. */
-	double gyro_hp[3];
+	float gyro_hp[3];
 
 	/** Contains the current low-power acceleration values in g. */
-	double accel_lp[3];
+	float accel_lp[3];
 
 	/** Timestamp when the sample was taken in milliseconds.
 	 *  This is either:
