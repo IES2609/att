@@ -54,7 +54,7 @@ struct environmental_msg {
 	/** Contains the current gyroscope values in dps. */
 	double gyro_hp[3];
 
-	/** Contains the current low-pass filtered acceleration values in g. */
+	/** Contains the current low-power acceleration values in g. */
 	double accel_lp[3];
 
 	/** Timestamp when the sample was taken in milliseconds.

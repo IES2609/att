@@ -10,14 +10,21 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/smf.h>
+#include <zephyr/sys/ring_buffer.h>
 #include <date_time.h>
 
 #include "app_common.h"
 #include "environmental.h"
 
-#define FS 100 /* Sampling frequency in milliseconds */
+#define FS 50 /* Sampling frequency in Hz */
+#define FS_MS 20 /* Sampling frequency in milliseconds (1000/50) */
 
-/* Register log module */
+/* Ring buffer for sensor samples (not K_FIFO - using sys/ring_buffer.h) */
+#define SAMPLE_BUFFER_SIZE 1024
+#define SAMPLES_PER_BATCH 50  /* Publish every 5 samples to batch and reduce zbus load */
+static uint8_t sample_buffer[SAMPLE_BUFFER_SIZE];
+static struct ring_buf sample_ring_buf;
+static uint8_t sample_count = 0;  /* Counter for batching */
 LOG_MODULE_REGISTER(environmental, CONFIG_APP_ENVIRONMENTAL_LOG_LEVEL);
 
 /* Define channels provided by this module */
@@ -81,13 +88,311 @@ struct environmental_state_object {
 	double accel_lp[3];
 };
 
-/* Forward declarations of state handlers */
+/* Sample data structure for storing in FIFO */
+struct sensor_sample {
+	double accel_hp[3];
+	double gyro_hp[3];
+	double accel_lp[3];
+	int64_t timestamp;
+};
+
+/* Global sensor device pointers for work handlers */
+static const struct device *g_bmi270;
+static const struct device *g_adxl367;
+
+/* Forward declarations */
 static enum smf_state_result state_running_run(void *obj);
+static void sample_publish_work_handler(struct k_work *work);
+static void sample_collect_work_handler(struct k_work *work);
+
+/* Work items for sensor sampling */
+static K_WORK_DEFINE(sample_publish_work, sample_publish_work_handler);
+static K_WORK_DELAYABLE_DEFINE(sample_collect_work, sample_collect_work_handler);
 
 /* State machine definition */
 static const struct smf_state states[] = {
 	[STATE_RUNNING] = SMF_CREATE_STATE(NULL, state_running_run, NULL, NULL, NULL),
 };
+
+/* Process samples from ring buffer and publish them to zbus */
+static void sample_publish_work_handler(struct k_work *work)
+{
+	int err;
+	struct sensor_sample sample;
+
+	ARG_UNUSED(work);
+
+	/* Process all available samples in ring buffer */
+	while (ring_buf_get(&sample_ring_buf, (uint8_t *)&sample, sizeof(sample)) == sizeof(sample)) {
+		struct environmental_msg msg = {
+			.type = ENVIRONMENTAL_SENSOR_SAMPLE_RESPONSE,
+			.accel_hp[0] = sample.accel_hp[0],
+			.accel_hp[1] = sample.accel_hp[1],
+			.accel_hp[2] = sample.accel_hp[2],
+			.gyro_hp[0] = sample.gyro_hp[0],
+			.gyro_hp[1] = sample.gyro_hp[1],
+			.gyro_hp[2] = sample.gyro_hp[2],
+			.accel_lp[0] = sample.accel_lp[0],
+			.accel_lp[1] = sample.accel_lp[1],
+			.accel_lp[2] = sample.accel_lp[2],
+			.timestamp = sample.timestamp,
+		};
+
+		LOG_DBG("Publishing sensor sample: accel_hp[%.2f, %.2f, %.2f] g, "
+			"gyro_hp[%.2f, %.2f, %.2f] dps, accel_lp[%.2f, %.2f, %.2f] g",
+			msg.accel_hp[0], msg.accel_hp[1], msg.accel_hp[2],
+			msg.gyro_hp[0], msg.gyro_hp[1], msg.gyro_hp[2],
+			msg.accel_lp[0], msg.accel_lp[1], msg.accel_lp[2]);
+
+		err = zbus_chan_pub(&environmental_chan, &msg, PUB_TIMEOUT);
+		if (err) {
+			LOG_ERR("zbus_chan_pub, error: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
+	}
+}
+
+/* Periodic work handler to sample sensors at 50 Hz */
+static void sample_collect_work_handler(struct k_work *work)
+{
+	int err;
+	struct sensor_sample sample = { 0 };
+
+	ARG_UNUSED(work);
+
+	/* Fetch data from BMI270 (accelerometer and gyroscope - high performance) */
+	if (g_bmi270 && device_is_ready(g_bmi270)) {
+		struct sensor_value accel_vals[3] = { 0 };
+		struct sensor_value gyro_vals[3] = { 0 };
+
+		err = sensor_sample_fetch_chan(g_bmi270, SENSOR_CHAN_ACCEL_XYZ);
+		if (err && err != -ENOTSUP) {
+			LOG_ERR("sensor_sample_fetch_chan accel, error: %d", err);
+			goto reschedule;
+		}
+
+		err = sensor_channel_get(g_bmi270, SENSOR_CHAN_ACCEL_XYZ, accel_vals);
+		if (err && err != -ENOTSUP) {
+			LOG_ERR("sensor_channel_get accel_xyz, error: %d", err);
+			goto reschedule;
+		}
+
+		sample.accel_hp[0] = sensor_value_to_double(&accel_vals[0]);
+		sample.accel_hp[1] = sensor_value_to_double(&accel_vals[1]);
+		sample.accel_hp[2] = sensor_value_to_double(&accel_vals[2]);
+
+		err = sensor_sample_fetch_chan(g_bmi270, SENSOR_CHAN_GYRO_XYZ);
+		if (err && err != -ENOTSUP) {
+			LOG_ERR("sensor_sample_fetch_chan gyro, error: %d", err);
+			goto reschedule;
+		}
+
+		err = sensor_channel_get(g_bmi270, SENSOR_CHAN_GYRO_XYZ, gyro_vals);
+		if (err && err != -ENOTSUP) {
+			LOG_ERR("sensor_channel_get gyro_xyz, error: %d", err);
+			goto reschedule;
+		}
+
+		sample.gyro_hp[0] = sensor_value_to_double(&gyro_vals[0]);
+		sample.gyro_hp[1] = sensor_value_to_double(&gyro_vals[1]);
+		sample.gyro_hp[2] = sensor_value_to_double(&gyro_vals[2]);
+
+		LOG_DBG("BMI270 sampled: accel_hp[%.3f, %.3f, %.3f] g, gyro_hp[%.3f, %.3f, %.3f] dps",
+			sample.accel_hp[0], sample.accel_hp[1], sample.accel_hp[2],
+			sample.gyro_hp[0], sample.gyro_hp[1], sample.gyro_hp[2]);
+	}
+
+	/* Fetch data from ADXL367 (accelerometer - low power) */
+	if (g_adxl367 && device_is_ready(g_adxl367)) {
+		struct sensor_value accel_vals[3] = { 0 };
+
+		err = sensor_sample_fetch_chan(g_adxl367, SENSOR_CHAN_ACCEL_XYZ);
+		if (err && err != -ENOTSUP) {
+			LOG_ERR("sensor_sample_fetch_chan accel_lp, error: %d", err);
+			goto reschedule;
+		}
+
+		err = sensor_channel_get(g_adxl367, SENSOR_CHAN_ACCEL_XYZ, accel_vals);
+		if (err && err != -ENOTSUP) {
+			LOG_ERR("sensor_channel_get accel_lp_xyz, error: %d", err);
+			goto reschedule;
+		}
+
+		sample.accel_lp[0] = sensor_value_to_double(&accel_vals[0]);
+		sample.accel_lp[1] = sensor_value_to_double(&accel_vals[1]);
+		sample.accel_lp[2] = sensor_value_to_double(&accel_vals[2]);
+
+		LOG_DBG("ADXL367 sampled: accel_lp[%.3f, %.3f, %.3f] g",
+			sample.accel_lp[0], sample.accel_lp[1], sample.accel_lp[2]);
+	}
+
+	/* Get timestamp */
+	sample.timestamp = k_uptime_get();
+	err = date_time_now(&sample.timestamp);
+	if (err != 0 && err != -ENODATA) {
+		LOG_WRN("date_time_now, error: %d (using uptime as fallback)", err);
+		sample.timestamp = k_uptime_get();
+	}
+
+	/* Add sample to ring buffer */
+	if (ring_buf_put(&sample_ring_buf, (uint8_t *)&sample, sizeof(sample)) != sizeof(sample)) {
+		LOG_WRN("Sample ring buffer full, dropping sample");
+	}
+
+	/* Trigger sample publishing work after batching SAMPLES_PER_BATCH samples */
+	sample_count++;
+	if (sample_count >= SAMPLES_PER_BATCH) {
+		sample_count = 0;
+		k_work_submit(&sample_publish_work);
+	}
+
+	/* Work completes without rescheduling - only fires on interrupt triggers */
+	return;
+
+reschedule:
+	/* Only reschedule as error fallback if needed */
+	k_work_schedule(&sample_collect_work, K_MSEC(FS_MS));
+}
+
+/* Sensor trigger callback for interrupt-based triggers */
+static void sensor_trigger_callback(const struct device *sensor, const struct sensor_trigger *trigger)
+{
+	ARG_UNUSED(trigger);
+
+	LOG_DBG("Sensor data-ready trigger from %s, submitting sample work", sensor->name);
+	/* Offload work to system workqueue - keep ISR short.
+	 * This follows the Zephyr ISR offloading pattern: signal a work item
+	 * to do interrupt-related processing outside of ISR context.
+	 * Use k_work_schedule with K_NO_WAIT for delayable work.
+	 */
+	k_work_schedule(&sample_collect_work, K_NO_WAIT);
+}
+
+/* Initialize sensor triggers and start periodic sampling */
+static int sensors_init(const struct device *bmi270, const struct device *adxl367)
+{
+	int err = 0;
+	struct sensor_trigger trig = {
+		.type = SENSOR_TRIG_DATA_READY,
+		.chan = SENSOR_CHAN_ACCEL_XYZ,
+	};
+
+	/* Store global pointers for use in work handlers */
+	g_bmi270 = bmi270;
+	g_adxl367 = adxl367;
+
+	/* Log sensor device pointers */
+
+	/* Configure BMI270 with data-ready trigger if available */
+	if (bmi270 && device_is_ready(bmi270)) {
+		LOG_DBG("BMI270 device ready, configuring sensor");
+
+		struct sensor_value full_scale, sampling_freq, oversampling;
+
+		/* Configure accelerometer: 2g full scale, FS Hz, 1x oversampling */
+		full_scale.val1 = 2;
+		full_scale.val2 = 0;
+		sampling_freq.val1 = FS;
+		sampling_freq.val2 = 0;
+		oversampling.val1 = 1;
+		oversampling.val2 = 0;
+
+		sensor_attr_set(bmi270, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_FULL_SCALE, &full_scale);
+		sensor_attr_set(bmi270, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_OVERSAMPLING, &oversampling);
+		err = sensor_attr_set(bmi270, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_SAMPLING_FREQUENCY, &sampling_freq);
+		if (err) {
+			LOG_WRN("BMI270 accel configuration failed, error: %d", err);
+		} else {
+			LOG_DBG("BMI270 accel configured: 2g, %d Hz", FS);
+		}
+
+		/* Configure gyroscope: 500 dps full scale, FS Hz, 1x oversampling */
+		full_scale.val1 = 500;
+		full_scale.val2 = 0;
+		sampling_freq.val1 = FS;
+		sampling_freq.val2 = 0;
+		oversampling.val1 = 1;
+		oversampling.val2 = 0;
+
+		sensor_attr_set(bmi270, SENSOR_CHAN_GYRO_XYZ, SENSOR_ATTR_FULL_SCALE, &full_scale);
+		sensor_attr_set(bmi270, SENSOR_CHAN_GYRO_XYZ, SENSOR_ATTR_OVERSAMPLING, &oversampling);
+		err = sensor_attr_set(bmi270, SENSOR_CHAN_GYRO_XYZ, SENSOR_ATTR_SAMPLING_FREQUENCY, &sampling_freq);
+		if (err) {
+			LOG_WRN("BMI270 gyro configuration failed, error: %d", err);
+		} else {
+			LOG_DBG("BMI270 gyro configured: 500 dps, %d Hz", FS);
+		}
+
+		/* Perform a full sample fetch to initialize and wake up the sensor */
+		err = sensor_sample_fetch(bmi270);
+		if (err && err != -ENOTSUP) {
+			LOG_WRN("Initial sensor_sample_fetch for BMI270 failed, error: %d", err);
+		} else {
+			LOG_DBG("BMI270 initial fetch completed");
+		}
+
+		err = sensor_trigger_set(bmi270, &trig, sensor_trigger_callback);
+		if (err) {
+			LOG_WRN("sensor_trigger_set for BMI270 failed, error: %d "
+				"(falling back to polling)", err);
+		} else {
+			LOG_DBG("BMI270 data-ready trigger configured successfully");
+		}
+	}
+
+	/* Configure ADXL367 with data-ready trigger if available */
+	if (adxl367 && device_is_ready(adxl367)) {
+		LOG_DBG("ADXL367 device ready, configuring sensor");
+
+		struct sensor_value full_scale, sampling_freq, oversampling;
+
+		/* Configure accelerometer: 4g full scale, FS Hz, 1x oversampling */
+		full_scale.val1 = 4;
+		full_scale.val2 = 0;
+		sampling_freq.val1 = FS;
+		sampling_freq.val2 = 0;
+		oversampling.val1 = 1;
+		oversampling.val2 = 0;
+
+		sensor_attr_set(adxl367, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_FULL_SCALE, &full_scale);
+		sensor_attr_set(adxl367, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_OVERSAMPLING, &oversampling);
+		err = sensor_attr_set(adxl367, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_SAMPLING_FREQUENCY, &sampling_freq);
+		if (err) {
+			LOG_WRN("ADXL367 configuration failed, error: %d", err);
+		} else {
+			LOG_DBG("ADXL367 configured: 4g, %d Hz", FS);
+		}
+
+		/* Perform a full sample fetch to initialize and wake up the sensor */
+		err = sensor_sample_fetch(adxl367);
+		if (err && err != -ENOTSUP) {
+			LOG_WRN("Initial sensor_sample_fetch for ADXL367 failed, error: %d", err);
+		} else {
+			LOG_DBG("ADXL367 initial fetch completed");
+		}
+
+		err = sensor_trigger_set(adxl367, &trig, sensor_trigger_callback);
+		if (err) {
+			LOG_WRN("sensor_trigger_set for ADXL367 failed, error: %d "
+				"(falling back to polling)", err);
+		} else {
+			LOG_DBG("ADXL367 data-ready trigger configured successfully");
+		}
+	}
+
+	/* Start periodic sampling at 50 Hz with work queue */
+	LOG_DBG("Starting periodic sensor sampling at %d Hz (every %d ms)", FS, FS_MS);
+	err = k_work_schedule(&sample_collect_work, K_MSEC(FS_MS));
+	if (err < 0) {
+		LOG_ERR("k_work_schedule sample_collect_work, error: %d", err);
+		return err;
+	}
+	/* Note: k_work_schedule returns 0 if work was not scheduled, or 1 if it was already scheduled.
+	 * Both are OK - we just want negative errors. */
+
+	return 0;
+}
 
 /* Define interrupt handlers*/
 
@@ -99,9 +404,6 @@ static void sample_sensors(const struct device *const bme680)
 	struct sensor_value temp = { 0 };
 	struct sensor_value press = { 0 };
 	struct sensor_value humidity = { 0 };
-	struct sensor_value accel_hp[3] = { 0 };
-	struct sensor_value gyro_hp[3] = { 0 };
-	struct sensor_value accel_lp[3] = { 0 };
 
 	err = sensor_sample_fetch(bme680);
 	if (err) {
@@ -197,9 +499,22 @@ static void env_module_thread(void)
 	const k_timeout_t zbus_wait_ms = K_MSEC(wdt_timeout_ms - execution_time_ms);
 	static struct environmental_state_object environmental_state = {
 		.bme680 = DEVICE_DT_GET(DT_NODELABEL(bme680)),
+		.bmi270 = DEVICE_DT_GET(DT_NODELABEL(accelerometer_hp)),
+		.adxl367 = DEVICE_DT_GET(DT_NODELABEL(accelerometer_lp)),
 	};
 
 	LOG_DBG("Environmental module task started");
+
+	/* Initialize ring buffer for sensor samples */
+	ring_buf_init(&sample_ring_buf, SAMPLE_BUFFER_SIZE, sample_buffer);
+
+	/* Initialize sensor triggers and start periodic sampling */
+	err = sensors_init(environmental_state.bmi270, environmental_state.adxl367);
+	if (err) {
+		LOG_ERR("sensors_init, error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
 
 	task_wdt_id = task_wdt_add(wdt_timeout_ms, env_wdt_callback, (void *)k_current_get());
 	if (task_wdt_id < 0) {
