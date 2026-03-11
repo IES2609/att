@@ -19,9 +19,9 @@
 #define FS 50 /* Sampling frequency in Hz */
 #define FS_MS 20 /* Sampling frequency in milliseconds (1000/50) */
 
-/* Ring buffer for sensor samples (not K_FIFO - using sys/ring_buffer.h) */
-#define SAMPLE_BUFFER_SIZE 1024
-#define SAMPLES_PER_BATCH 50  /* Publish every 5 samples to batch and reduce zbus load */
+/* Ring buffer for sensor samples */
+#define SAMPLE_BUFFER_SIZE 4096
+#define SAMPLES_PER_BATCH 10  /* Publish every x samples to batch and reduce zbus load */
 static uint8_t sample_buffer[SAMPLE_BUFFER_SIZE];
 static struct ring_buf sample_ring_buf;
 static uint8_t sample_count = 0;  /* Counter for batching */
@@ -138,7 +138,7 @@ static void sample_publish_work_handler(struct k_work *work)
 			.timestamp = sample.timestamp,
 		};
 
-		LOG_DBG("Publishing sensor sample: accel_hp[%.2f, %.2f, %.2f] g, "
+		LOG_INF("Publishing sensor sample: accel_hp[%.2f, %.2f, %.2f] g, "
 			"gyro_hp[%.2f, %.2f, %.2f] dps, accel_lp[%.2f, %.2f, %.2f] g",
 			msg.accel_hp[0], msg.accel_hp[1], msg.accel_hp[2],
 			msg.gyro_hp[0], msg.gyro_hp[1], msg.gyro_hp[2],
@@ -166,9 +166,10 @@ static void sample_collect_work_handler(struct k_work *work)
 		struct sensor_value accel_vals[3] = { 0 };
 		struct sensor_value gyro_vals[3] = { 0 };
 
-		err = sensor_sample_fetch_chan(g_bmi270, SENSOR_CHAN_ACCEL_XYZ);
+		/* Full fetch ensures atomic read of all sensor data */
+		err = sensor_sample_fetch(g_bmi270);
 		if (err && err != -ENOTSUP) {
-			LOG_ERR("sensor_sample_fetch_chan accel, error: %d", err);
+			LOG_ERR("sensor_sample_fetch bmi270, error: %d", err);
 			goto reschedule;
 		}
 
@@ -181,12 +182,6 @@ static void sample_collect_work_handler(struct k_work *work)
 		sample.accel_hp[0] = sensor_value_to_double(&accel_vals[0]);
 		sample.accel_hp[1] = sensor_value_to_double(&accel_vals[1]);
 		sample.accel_hp[2] = sensor_value_to_double(&accel_vals[2]);
-
-		err = sensor_sample_fetch_chan(g_bmi270, SENSOR_CHAN_GYRO_XYZ);
-		if (err && err != -ENOTSUP) {
-			LOG_ERR("sensor_sample_fetch_chan gyro, error: %d", err);
-			goto reschedule;
-		}
 
 		err = sensor_channel_get(g_bmi270, SENSOR_CHAN_GYRO_XYZ, gyro_vals);
 		if (err && err != -ENOTSUP) {
@@ -207,9 +202,10 @@ static void sample_collect_work_handler(struct k_work *work)
 	if (g_adxl367 && device_is_ready(g_adxl367)) {
 		struct sensor_value accel_vals[3] = { 0 };
 
-		err = sensor_sample_fetch_chan(g_adxl367, SENSOR_CHAN_ACCEL_XYZ);
+		/* Full fetch ensures atomic read of all sensor data */
+		err = sensor_sample_fetch(g_adxl367);
 		if (err && err != -ENOTSUP) {
-			LOG_ERR("sensor_sample_fetch_chan accel_lp, error: %d", err);
+			LOG_ERR("sensor_sample_fetch adxl367, error: %d", err);
 			goto reschedule;
 		}
 
@@ -227,12 +223,10 @@ static void sample_collect_work_handler(struct k_work *work)
 			sample.accel_lp[0], sample.accel_lp[1], sample.accel_lp[2]);
 	}
 
-	/* Get timestamp */
 	sample.timestamp = k_uptime_get();
 	err = date_time_now(&sample.timestamp);
 	if (err != 0 && err != -ENODATA) {
-		LOG_WRN("date_time_now, error: %d (using uptime as fallback)", err);
-		sample.timestamp = k_uptime_get();
+		LOG_WRN("date_time_now, error: %d", err);
 	}
 
 	/* Add sample to ring buffer */
@@ -251,7 +245,10 @@ static void sample_collect_work_handler(struct k_work *work)
 	return;
 
 reschedule:
-	/* Only reschedule as error fallback if needed */
+	/* Error fallback: reschedule work to retry if sample collection fails.
+	 * This acts as a safety net to ensure samples are eventually collected
+	 * even if something goes wrong with the interrupt. */
+	LOG_ERR("Sample collection error detected, enabling periodic fallback (%d ms)", FS_MS);
 	k_work_schedule(&sample_collect_work, K_MSEC(FS_MS));
 }
 
@@ -273,6 +270,8 @@ static void sensor_trigger_callback(const struct device *sensor, const struct se
 static int sensors_init(const struct device *bmi270, const struct device *adxl367)
 {
 	int err = 0;
+	int bmi270_trigger_ok = 0;
+	int adxl367_trigger_ok = 0;
 	struct sensor_trigger trig = {
 		.type = SENSOR_TRIG_DATA_READY,
 		.chan = SENSOR_CHAN_ACCEL_XYZ,
@@ -334,10 +333,10 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 
 		err = sensor_trigger_set(bmi270, &trig, sensor_trigger_callback);
 		if (err) {
-			LOG_WRN("sensor_trigger_set for BMI270 failed, error: %d "
-				"(falling back to polling)", err);
+			LOG_ERR("BMI270 data-ready trigger not supported on this device, error: %d", err);
 		} else {
-			LOG_DBG("BMI270 data-ready trigger configured successfully");
+			LOG_INF("BMI270 data-ready trigger configured successfully");
+			bmi270_trigger_ok = 1;
 		}
 	}
 
@@ -374,22 +373,25 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 
 		err = sensor_trigger_set(adxl367, &trig, sensor_trigger_callback);
 		if (err) {
-			LOG_WRN("sensor_trigger_set for ADXL367 failed, error: %d "
-				"(falling back to polling)", err);
+			LOG_ERR("ADXL367 data-ready trigger not supported on this device, error: %d", err);
 		} else {
-			LOG_DBG("ADXL367 data-ready trigger configured successfully");
+			LOG_INF("ADXL367 data-ready trigger configured successfully");
+			adxl367_trigger_ok = 1;
 		}
 	}
 
-	/* Start periodic sampling at 50 Hz with work queue */
-	LOG_DBG("Starting periodic sensor sampling at %d Hz (every %d ms)", FS, FS_MS);
-	err = k_work_schedule(&sample_collect_work, K_MSEC(FS_MS));
-	if (err < 0) {
-		LOG_ERR("k_work_schedule sample_collect_work, error: %d", err);
-		return err;
+	/* Only start periodic sampling as fallback if trigger setup failed completely */
+	if (!bmi270_trigger_ok || !adxl367_trigger_ok) {
+		LOG_INF("Interrupt-based triggers not available, starting periodic sampling at %d Hz (every %d ms)",
+			FS, FS_MS);
+		err = k_work_schedule(&sample_collect_work, K_MSEC(FS_MS));
+		if (err < 0) {
+			LOG_ERR("k_work_schedule sample_collect_work, error: %d", err);
+			return err;
+		}
+	} else {
+		LOG_INF("Interrupt-driven sampling configured (no periodic fallback)");
 	}
-	/* Note: k_work_schedule returns 0 if work was not scheduled, or 1 if it was already scheduled.
-	 * Both are OK - we just want negative errors. */
 
 	return 0;
 }
