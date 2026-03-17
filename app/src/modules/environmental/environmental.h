@@ -40,13 +40,13 @@ struct environmental_msg {
 	enum environmental_msg_type type;
 
 	/** Contains the current temperature in celsius. */
-	uint16_t temperature;
+	float temperature;
 
 	/** Contains the current humidity in percentage. */
-	uint16_t humidity;
+	float humidity;
 
 	/** Contains the current pressure in Pa. */
-	uint16_t pressure;
+	float pressure;
 
 	/** Contains the current acceleration values in g. */
 	float accel_hp[3];
