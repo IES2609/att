@@ -26,6 +26,7 @@
 /* Ring buffer for sensor samples */
 #define SAMPLE_BUFFER_SIZE 2048
 #define SAMPLES_PER_BATCH 10  /* Publish every x samples to batch and reduce zbus load */
+
 static uint8_t sample_buffer[SAMPLE_BUFFER_SIZE];
 static struct ring_buf sample_ring_buf;
 static uint8_t sample_count = 0;  /* Counter for batching */
@@ -132,10 +133,11 @@ static void sample_publish_work_handler(struct k_work *work)
 {
 	int err;
 	struct sensor_sample sample;
+	int published_count = 0;
 
 	ARG_UNUSED(work);
 
-	/* Process all available samples in ring buffer */
+	/* Process all available samples in ring buffer and publish them */
 	while (ring_buf_get(&sample_ring_buf, (uint8_t *)&sample, sizeof(sample)) == sizeof(sample)) {
 		struct environmental_msg msg = {
 			.type = ENVIRONMENTAL_SENSOR_SAMPLE_RESPONSE,
@@ -158,7 +160,7 @@ static void sample_publish_work_handler(struct k_work *work)
 			msg.pressure = latest_pressure;
 			msg.humidity = latest_humidity;
 			imu_sample_count = 0;
-			LOG_INF("Publishing sensor sample with ENV: accel_hp[%.2f, %.2f, %.2f] g, "
+			LOG_DBG("Publishing sensor sample with ENV: accel_hp[%.2f, %.2f, %.2f] g, "
 				"gyro_hp[%.2f, %.2f, %.2f] dps, accel_lp[%.2f, %.2f, %.2f] g, "
 				"temp=%.2f C, press=%.2f Pa, humidity=%.2f %%",
 				(double)msg.accel_hp[0], (double)msg.accel_hp[1], (double)msg.accel_hp[2],
@@ -166,7 +168,7 @@ static void sample_publish_work_handler(struct k_work *work)
 				(double)msg.accel_lp[0], (double)msg.accel_lp[1], (double)msg.accel_lp[2],
 				(double)msg.temperature, (double)msg.pressure, (double)msg.humidity);
 		} else {
-			LOG_INF("Publishing sensor sample: accel_hp[%.2f, %.2f, %.2f] g, "
+			LOG_DBG("Publishing sensor sample: accel_hp[%.2f, %.2f, %.2f] g, "
 				"gyro_hp[%.2f, %.2f, %.2f] dps, accel_lp[%.2f, %.2f, %.2f] g",
 				(double)msg.accel_hp[0], (double)msg.accel_hp[1], (double)msg.accel_hp[2],
 				(double)msg.gyro_hp[0], (double)msg.gyro_hp[1], (double)msg.gyro_hp[2],
@@ -179,6 +181,12 @@ static void sample_publish_work_handler(struct k_work *work)
 			SEND_FATAL_ERROR();
 			return;
 		}
+
+		published_count++;
+	}
+
+	if (published_count > 0) {
+		LOG_INF("Published %d samples in batch", published_count);
 	}
 }
 
