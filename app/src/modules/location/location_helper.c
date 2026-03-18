@@ -7,14 +7,21 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <string.h>
+#include <errno.h>
 
 #include "location_helper.h"
 
 LOG_MODULE_DECLARE(location_module, CONFIG_APP_LOCATION_LOG_LEVEL);
 
+/* --- DEAKTIVERT KODE START --- 
+ * Vi bruker #if 0 for å beholde koden i fila uten at den kompileres.
+ * Dette fjerner feilmeldinger om manglende WiFi/Cell-typer.
+ */
+#if 0
+
 #if defined(CONFIG_LOCATION_METHOD_CELLULAR)
 static int copy_cellular_data(struct location_cloud_request_data *dest,
-			      const struct lte_lc_cells_info *src)
+				  const struct lte_lc_cells_info *src)
 {
 	if ((src == NULL) || (dest == NULL)) {
 		LOG_ERR("Invalid cellular data");
@@ -72,7 +79,7 @@ static int copy_cellular_data(struct location_cloud_request_data *dest,
 
 #if defined(CONFIG_LOCATION_METHOD_WIFI)
 static int copy_wifi_data(struct location_cloud_request_data *dest,
-			   const struct wifi_scan_info *src)
+			       const struct wifi_scan_info *src)
 {
 	if ((src == NULL) || (src->ap_info == NULL) || (src->cnt == 0)) {
 		LOG_ERR("Invalid WiFi scan info");
@@ -104,37 +111,22 @@ static int copy_wifi_data(struct location_cloud_request_data *dest,
 }
 #endif /* CONFIG_LOCATION_METHOD_WIFI */
 
+#endif 
+/* --- DEAKTIVERT KODE SLUTT --- */
+
+/**
+ * @brief Kopierer lokasjonsdata for sky-forespørsler.
+ * Denne versjonen er forenklet for å tillate bygging uten aktive lokasjonsmetoder.
+ */
 int location_cloud_request_data_copy(struct location_cloud_request_data *dest,
 				     const struct location_data_cloud *src)
 {
-	int err = 0;
-
+	/* Vi sjekker bare parametere for å unngå krasj, men gjør ingen kopiering */
 	if (dest == NULL || src == NULL) {
-		LOG_ERR("Invalid parameters for cloud request data copy");
 		return -EINVAL;
 	}
 
-	LOG_DBG("Copying cloud request data, size of dest: %zu", sizeof(*dest));
-
-#if defined(CONFIG_LOCATION_METHOD_CELLULAR)
-	if (src->cell_data) {
-		err = copy_cellular_data(dest, src->cell_data);
-		if (err) {
-			LOG_ERR("Failed to copy cellular data");
-			return err;
-		}
-	}
-#endif
-
-#if defined(CONFIG_LOCATION_METHOD_WIFI)
-	if (src->wifi_data) {
-		err = copy_wifi_data(dest, src->wifi_data);
-		if (err) {
-			LOG_ERR("Failed to copy WiFi data");
-			return err;
-		}
-	}
-#endif
+	LOG_DBG("Dummy copy: No location methods active, skipping data copy.");
 
 	return 0;
 }

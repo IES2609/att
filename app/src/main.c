@@ -19,7 +19,7 @@
 #include "network.h"
 #include "cloud.h"
 #include "fota.h"
-//#include "location.h"
+#include "location.h"
 #include "storage.h"
 #include "cbor_helper.h"
 

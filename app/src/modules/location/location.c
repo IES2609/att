@@ -507,7 +507,9 @@ static void location_event_handler(const struct location_event_data *event_data)
 	case LOCATION_EVT_CLOUD_LOCATION_EXT_REQUEST:
 		LOG_DBG("Cloud location request received from location library");
 
-		cloud_request_send(&event_data->cloud_location_request);
+		#if defined(CONFIG_NRF_CLOUD_LOCATION)
+			cloud_request_send(&event_data->cloud_location_request);
+		#endif
 
 		/* Cancel the current location request to avoid falling back to the next
 		 * location source. Treat the fact that we have found Wi-Fi APs and/or cellular data

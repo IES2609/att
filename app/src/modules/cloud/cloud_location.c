@@ -15,7 +15,7 @@
 #include "cloud_location.h"
 #include "cloud_internal.h"
 #include "app_common.h"
-//#include "location.h"
+#include "location.h"
 
 LOG_MODULE_DECLARE(cloud, CONFIG_APP_CLOUD_LOG_LEVEL);
 
