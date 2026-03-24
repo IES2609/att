@@ -20,7 +20,3 @@ venv
 sanity-out*
 twister-out*
 tests/on_target/artifacts/
-
-#misc
-.mdviewer.ipynb
-.ENVIRONMENTAL_INTERRUPT_SAMPLING_NOTES.md

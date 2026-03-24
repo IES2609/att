@@ -16,9 +16,6 @@
 extern "C" {
 #endif
 
-/*Flag for full storage*/
-extern bool storage_full;
-
 /* Message types for the storage channels */
 enum storage_msg_type {
 	/* Input messages */
