@@ -36,6 +36,11 @@ static uint8_t imu_sample_count = 0;  /* Counter for IMU samples to include pres
 
 /* Latest environmental sensor readings (updated at 0.1 Hz) */
 static int32_t latest_pressure_pa = 0;  /* Pressure in Pa as fixed-point int32_t */
+
+/* Debug counter for periodic sensor reading printouts */
+static uint32_t batch_publish_count = 0;
+#define DEBUG_PRINT_INTERVAL 10  /* Print detailed sensor data every N batches */
+
 LOG_MODULE_REGISTER(environmental, CONFIG_APP_ENVIRONMENTAL_LOG_LEVEL);
 
 /* Environmental data now flows via message queue (environmental_msgq.h) only,not zbus.
@@ -132,6 +137,30 @@ static void sample_publish_work_handler(struct k_work *work)
 
 	LOG_INF("Publishing batch with %d samples (msgq, pressure_valid=%d)",
 		batch_msg.sample_count, batch_msg.pressure_valid);
+
+	/* Periodic debug print: show all sensor readings from first sample */
+	batch_publish_count++;
+	if (batch_publish_count % DEBUG_PRINT_INTERVAL == 0) {
+		float accel_hp_x = (float)batch_msg.accel_hp[0][0] / ACCEL_SCALE;
+		float accel_hp_y = (float)batch_msg.accel_hp[1][0] / ACCEL_SCALE;
+		float accel_hp_z = (float)batch_msg.accel_hp[2][0] / ACCEL_SCALE;
+		float gyro_hp_x = (float)batch_msg.gyro_hp[0][0] / GYRO_SCALE;
+		float gyro_hp_y = (float)batch_msg.gyro_hp[1][0] / GYRO_SCALE;
+		float gyro_hp_z = (float)batch_msg.gyro_hp[2][0] / GYRO_SCALE;
+		float accel_lp_x = (float)batch_msg.accel_lp[0][0] / ACCEL_SCALE;
+		float accel_lp_y = (float)batch_msg.accel_lp[1][0] / ACCEL_SCALE;
+		float accel_lp_z = (float)batch_msg.accel_lp[2][0] / ACCEL_SCALE;
+		
+		LOG_INF("=== SENSOR READINGS (Sample 0) ===");
+		LOG_INF("  BMI270 Accel: (%.3f, %.3f, %.3f) g", accel_hp_x, accel_hp_y, accel_hp_z);
+		LOG_INF("  BMI270 Gyro:  (%.2f, %.2f, %.2f) dps", gyro_hp_x, gyro_hp_y, gyro_hp_z);
+		LOG_INF("  ADXL367 Accel: (%.3f, %.3f, %.3f) g", accel_lp_x, accel_lp_y, accel_lp_z);
+		LOG_INF("  BME680 Pressure: %d Pa %s", batch_msg.pressure, 
+			batch_msg.pressure_valid ? "(valid)" : "(invalid)");
+		LOG_INF("  Timestamp: %u ms, Samples in batch: %u", 
+			batch_msg.batch_timestamp_ms, batch_msg.sample_count);
+		LOG_INF("=== END SENSOR READINGS ===");
+	}
 
 	/* Use blocking write with 500ms timeout to let storage thread drain the queue.
 	 * Do NOT retry aggressively (1ms loops starve the storage thread).

@@ -685,27 +685,47 @@ static void storage_clear(void)
 {
 	int err;
 
-	LOG_DBG("Purging storage");
+	LOG_INF("=== Storage Clear Starting ===");
 
 	/* Clear all stored data from generic backend */
+	LOG_INF("Clearing generic backend storage...");
 	err = storage_backend_get()->clear();
 	if (err) {
 		LOG_ERR("Failed to clear storage backend, error: %d", err);
 		SEND_FATAL_ERROR();
 	}
+	LOG_INF("Generic backend storage cleared successfully");
 
 #ifdef CONFIG_APP_ENVIRONMENTAL
 	/* Clear dedicated environmental stream file */
-	err = fs_unlink(ENV_STREAM_FILE_PATH);
-	if ((err < 0) && (err != -ENOENT)) {
-		LOG_ERR("Failed to delete %s: %d", ENV_STREAM_FILE_PATH, err);
-		SEND_FATAL_ERROR();
+	LOG_INF("Clearing environmental stream file at %s...", ENV_STREAM_FILE_PATH);
+	
+	/* Check if file exists before trying to delete */
+	struct fs_dirent file_entry;
+	err = fs_stat(ENV_STREAM_FILE_PATH, &file_entry);
+	if (err < 0) {
+		/* File doesn't exist - this is expected */
+		LOG_INF("Environmental stream file doesn't exist");
+	} else {
+		/* File exists, delete it */
+		err = fs_unlink(ENV_STREAM_FILE_PATH);
+		if (err < 0) {
+			LOG_ERR("Failed to delete %s: %d", ENV_STREAM_FILE_PATH, err);
+			SEND_FATAL_ERROR();
+		} else {
+			LOG_INF("Environmental stream file deleted successfully");
+		}
 	}
 
 	env_stream.initialized = false;
 	env_stream.file_offset = 0;
 	env_stream.records_written = 0;
 #endif
+
+	/* Reset capacity tracking */
+	bytes_written = 0;
+	storage_full = false;
+	LOG_INF("=== Storage Clear Complete ===");
 }
 
 static void update_threshold(struct storage_state *state_object, uint32_t new_threshold)
@@ -1065,6 +1085,10 @@ static void state_running_entry(void *o)
 	memset(storage_state->threshold_notified, 0, sizeof(storage_state->threshold_notified));
 
 	k_work_init_delayable(&storage_state->session_timeout_work, session_timeout_work_fn);
+
+	/* Clear storage on boot to ensure clean state */
+	LOG_INF("Clearing storage on boot...");
+	storage_clear();
 
 #ifdef CONFIG_APP_ENVIRONMENTAL
 	/* Debug: Read and display stored environmental data */
