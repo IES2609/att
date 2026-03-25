@@ -977,7 +977,7 @@ static enum smf_state_result disconnected_run(void *o)
 				return SMF_EVENT_HANDLED;
 			}
 
-			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED]);
+			//smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED]);
 
 			return SMF_EVENT_HANDLED;
 		}
@@ -1231,6 +1231,15 @@ static enum smf_state_result connected_sampling_run(void *o)
 	/* Ignore other sample triggers while sampling */
 	if (state_object->chan == &button_chan &&
 	    MSG_TO_BUTTON_MSG(state_object->msg_buf).type == BUTTON_PRESS_SHORT) {
+		return SMF_EVENT_HANDLED;
+	}
+
+	
+	//long push while sampling and connected
+	if (state_object->chan == &button_chan && 
+		MSG_TO_BUTTON_MSG(state_object->msg_buf).type == BUTTON_PRESS_LONG) {
+		
+		smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_SENDING]);
 		return SMF_EVENT_HANDLED;
 	}
 
