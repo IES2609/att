@@ -160,11 +160,12 @@ static void sample_publish_work_handler(struct k_work *work)
 		LOG_DBG("=== END SENSOR READINGS ===");
 	}
 
-	/* Use blocking write with 500ms timeout to let storage thread drain the queue.
-	 * Do NOT retry aggressively (1ms loops starve the storage thread).
-	 * Increased timeout to accommodate LittleFS flash write latency (50-200ms).
-	 * Send batch_msg directly without stack copy (RAM optimization).
-	 */
+	/* Non-blocking write to environmental msgq.
+	* If queue is full (128 slots), drop the batch as backpressure signal.
+	* In practice, queue provides ~12+ seconds of buffering at 10 Hz sampling,
+	* so occasional slow flash writes (50-200ms) are absorbed without loss.
+	* Queue only fills if storage thread is blocked for >2 seconds.
+	*/
 	err = environmental_msgq_write(&batch_msg, K_NO_WAIT);
 	if (err) {
 		LOG_WRN("environmental_msgq_write failed: %d (msgq full or timeout)", err);
