@@ -960,11 +960,11 @@ static enum smf_state_result disconnected_run(void *o)
 		}
 	}
 
-	//detects long button press to trigger LTE connection 
-	if (state_object->chan == &button_chan) {
-		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
+	//Detects if the storage threshold has been reached and initiates a network connection. 
+	if (state_object->chan == &storage_chan) {
+		struct storage_msg *msg = MSG_TO_STORAGE_MSG_PTR(state_object->msg_buf);
 
-		if (button_msg.type == BUTTON_PRESS_LONG) {
+		if (msg->type == STORAGE_THRESHOLD_REACHED) {
 			int err;
 			struct network_msg net_msg = {
 				.type = NETWORK_CONNECT,
