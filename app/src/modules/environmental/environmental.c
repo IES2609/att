@@ -30,7 +30,6 @@ static struct environmental_msg batch_msg = {
 	.sample_count = 0,
 	.batch_timestamp_ms = 0,
 	.pressure = 0,
-	.pressure_valid = false,
 };
 static uint8_t imu_sample_count = 0;  /* Counter for IMU samples to include pressure periodically */
 
@@ -135,8 +134,8 @@ static void sample_publish_work_handler(struct k_work *work)
 		return;
 	}
 
-	LOG_INF("Publishing batch with %d samples (msgq, pressure_valid=%d)",
-		batch_msg.sample_count, batch_msg.pressure_valid);
+	LOG_INF("Publishing batch with %d samples (msgq)",
+		batch_msg.sample_count);
 
 	/* Periodic debug print: show all sensor readings from first sample */
 	batch_publish_count++;
@@ -155,8 +154,7 @@ static void sample_publish_work_handler(struct k_work *work)
 		LOG_DBG("  BMI270 Accel: (%.3f, %.3f, %.3f) g", (double)accel_hp_x, (double)accel_hp_y, (double)accel_hp_z);
 		LOG_DBG("  BMI270 Gyro:  (%.2f, %.2f, %.2f) dps", (double)gyro_hp_x, (double)gyro_hp_y, (double)gyro_hp_z);
 		LOG_DBG("  ADXL367 Accel: (%.3f, %.3f, %.3f) g", (double)accel_lp_x, (double)accel_lp_y, (double)accel_lp_z);
-		LOG_DBG("  BME680 Pressure: %d Pa %s", batch_msg.pressure, 
-			batch_msg.pressure_valid ? "(valid)" : "(invalid)");
+		LOG_DBG("  BME680 Pressure: %d Pa", batch_msg.pressure);
 		LOG_DBG("  Timestamp: %u ms, Samples in batch: %u", 
 			batch_msg.batch_timestamp_ms, batch_msg.sample_count);
 		LOG_DBG("=== END SENSOR READINGS ===");
@@ -177,8 +175,6 @@ static void sample_publish_work_handler(struct k_work *work)
 	}
 
 	/* Reset batch message for next batch only after successful write */
-	batch_msg.sample_count = 0;
-	batch_msg.pressure_valid = false;
 	batch_msg.sample_count = 0;
 }
 
@@ -310,7 +306,6 @@ static void sample_collect_work_handler(struct k_work *work)
 	imu_sample_count++;
 	if (imu_sample_count >= ENV_SAMPLES_BETWEEN_PUBLISH && batch_msg.sample_count == 0) {
 		batch_msg.pressure = latest_pressure_pa;
-		batch_msg.pressure_valid = true;
 		imu_sample_count = 0;
 		LOG_DBG("Batch pressure updated: %d Pa", batch_msg.pressure);
 	}

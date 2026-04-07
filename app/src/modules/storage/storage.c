@@ -135,11 +135,13 @@ static size_t max_bytes = 0x1880000; //Roughly 10% margin (LittleFS has overhead
 #ifdef CONFIG_APP_ENVIRONMENTAL
 #define ENV_STREAM_FILE_PATH "/att_storage/ENVIRONMENTAL_STREAM.bin"
 #define ENV_BULK_WRITE_MAX_RECORDS 8
+#define ENV_SIZE_LOG_INTERVAL 10  /* Log file size every N bulk writes */
 
 struct env_stream_state {
 	bool initialized;
 	uint32_t records_written;
 	size_t file_offset;
+	uint32_t write_count;  /* Counter for periodic size logging */
 };
 
 static struct env_stream_state env_stream;
@@ -371,14 +373,39 @@ static int environmental_stream_init(void)
 		/* File probably does not exist yet; that's fine */
 		env_stream.file_offset = 0;
 		env_stream.records_written = 0;
+		LOG_INF("Environmental stream initialized: new file (not found from previous run)");
 	} else {
 		env_stream.file_offset = entry.size;
 		/* Rough estimate: each record is one environmental_msg */
 		env_stream.records_written = entry.size / sizeof(struct environmental_msg);
+		LOG_INF("Environmental stream initialized: recovered %u records, file size: %zu bytes",
+			env_stream.records_written, entry.size);
 	}
 
 	env_stream.initialized = true;
+	env_stream.write_count = 0;
 	return 0;
+}
+
+/* Log environmental stream file size and statistics */
+static void log_environmental_stream_size(void)
+{
+	struct fs_dirent entry;
+	int ret;
+	uint32_t file_size_kb;
+	uint32_t percent_full;
+
+	ret = fs_stat(ENV_STREAM_FILE_PATH, &entry);
+	if (ret < 0) {
+		LOG_INF("Environmental stream file does not exist yet");
+		return;
+	}
+
+	file_size_kb = entry.size / 1024;
+	percent_full = (bytes_written * 100) / max_bytes;
+
+	LOG_INF("Environmental stream file size: %zu bytes (%u KB), Records: %u, Storage: %u%% full",
+		entry.size, file_size_kb, env_stream.records_written, percent_full);
 }
 
 /* Bulk append environmental messages to the dedicated stream file.
@@ -449,6 +476,13 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 	env_stream.records_written += count;
 	bytes_written += total_size;
 
+	/* Periodically log file size */
+	env_stream.write_count++;
+	if (env_stream.write_count >= ENV_SIZE_LOG_INTERVAL) {
+		log_environmental_stream_size();
+		env_stream.write_count = 0;
+	}
+
 	return 0;
 }
 
@@ -511,8 +545,8 @@ static void environmental_stream_debug_print(void)
 
 		/* Print record summary */
 		LOG_INF("[Record %d]", record_count);
-		LOG_INF("  Timestamp: %u ms, Samples: %u, Pressure: %d Pa (valid: %d)",
-			msg.batch_timestamp_ms, msg.sample_count, msg.pressure, msg.pressure_valid);
+		LOG_INF("  Timestamp: %u ms, Samples: %u, Pressure: %d Pa",
+			msg.batch_timestamp_ms, msg.sample_count, msg.pressure);
 
 		if (msg.sample_count > 0) {
 			/* Print first sample data */
@@ -698,6 +732,9 @@ static void storage_clear(void)
 #ifdef CONFIG_APP_ENVIRONMENTAL
 	/* Clear dedicated environmental stream file */
 	LOG_INF("Clearing environmental stream file at %s...", ENV_STREAM_FILE_PATH);
+	
+	/* Log final file size before deletion */
+	log_environmental_stream_size();
 	
 	/* Check if file exists before trying to delete */
 	struct fs_dirent file_entry;
