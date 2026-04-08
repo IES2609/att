@@ -14,6 +14,7 @@
 #include <net/nrf_cloud_rest.h>
 #include <nrf_cloud_coap_transport.h>
 #include <zephyr/net/coap.h>
+#include <zephyr/fs/fs.h>
 #include <app_version.h>
 #include <date_time.h>
 
@@ -529,6 +530,46 @@ static int request_storage_batch_data(uint32_t session_id)
 	return 0;
 }
 
+static void drain_environmental_stream(void)
+{
+    struct fs_file_t file;
+    struct environmental_msg env_msg;
+    struct storage_data_item item;
+    int ret;
+    uint32_t count = 0;
+
+    fs_file_t_init(&file);
+
+    /* Opening file where the environmental data is saved*/
+    ret = fs_open(&file, "/att_storage/ENVIRONMENTAL_STREAM.bin", FS_O_READ);
+    if (ret < 0) {
+        LOG_INF("No environmental stream file found to drain (error %d)", ret);
+        return;
+    }
+
+    /* Reading data from the file */
+    while (fs_read(&file, &env_msg, sizeof(env_msg)) == sizeof(env_msg)) {
+        item.type = STORAGE_TYPE_ENVIRONMENTAL;
+        item.data.ENVIRONMENTAL = env_msg;
+
+        /* Send to cloud via existing function */
+        ret = send_storage_data_to_cloud(&item);
+        if (ret) {
+            LOG_ERR("Failed to send streamed env item %u", count);
+        }
+        count++;
+        
+        /* Give the system a small pause between each 100Hz packet */
+        k_msleep(20); 
+    }
+
+    fs_close(&file);
+
+    /* Delete the file after draining, this was used for testing */
+    fs_unlink("/att_storage/ENVIRONMENTAL_STREAM.bin");
+    LOG_INF("Drained and deleted 100Hz stream: %u records sent", count);
+}
+
 static void handle_storage_batch_available(const struct storage_msg *msg)
 {
 	int err;
@@ -580,6 +621,11 @@ static void handle_storage_batch_available(const struct storage_msg *msg)
 
 		return;
 	}
+
+	if (!session_error) {
+        LOG_INF("Standard batch complete. Draining 100Hz Environmental Stream...");
+        drain_environmental_stream(); 
+    }
 
 	if (items_processed > 0) {
 		err = nrf_cloud_coap_shadow_network_info_update();

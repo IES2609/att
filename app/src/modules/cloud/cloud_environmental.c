@@ -14,29 +14,42 @@ LOG_MODULE_DECLARE(cloud, CONFIG_APP_CLOUD_LOG_LEVEL);
 
 
 int cloud_environmental_send(const struct environmental_msg *env,
-			     int64_t timestamp_ms,
-			     bool confirmable)
+                             int64_t timestamp_ms,
+                             bool confirmable)
 {
-	int err;
+    int err;
 
-	if (!env || env->sample_count == 0) {
-		return 0; /* Nothing to send */
-	}
+    if (!env || env->sample_count == 0) {
+        return 0;
+    }
 
-	/* Extract pressure if available (stored as int32_t Pa) */
-	if (env->pressure_valid && env->pressure != 0) {
-		err = nrf_cloud_coap_sensor_send(NRF_CLOUD_JSON_APPID_VAL_AIR_PRESS,
-						 (double)env->pressure,
-						 timestamp_ms,
-						 confirmable);
-		if (err) {
-			LOG_ERR("Failed to send pressure data to cloud, error: %d", err);
-			return err;
-		}
+    if (env->pressure_valid && env->pressure != 0) {
+        err = nrf_cloud_coap_sensor_send(NRF_CLOUD_JSON_APPID_VAL_AIR_PRESS,
+                                         (double)env->pressure,
+                                         timestamp_ms,
+                                         confirmable);
+        if (err) {
+            LOG_ERR("Failed to send pressure: %d", err);
+        }
+    }
 
-		LOG_DBG("Environmental pressure data sent to cloud: P=%.1f Pa", 
-			(double)env->pressure);
-	}
+    double accel_x = (double)env->accel_hp[0][0] / 16384.0;
+    err = nrf_cloud_coap_sensor_send("ACCEL_X", 
+                                     accel_x, 
+                                     timestamp_ms, 
+                                     confirmable);
+    if (err) {
+        LOG_ERR("Failed to send Accel-X: %d", err);
+    }
 
-	return 0;
+    double gyro_x = (double)env->gyro_hp[0][0] / 16.4;
+    err = nrf_cloud_coap_sensor_send("GYRO_X", 
+                                     gyro_x, 
+                                     timestamp_ms, 
+                                     confirmable);
+    if (err) {
+        LOG_ERR("Failed to send Gyro-X: %d", err);
+    }
+
+    return err;
 }

@@ -175,6 +175,10 @@ static void sample_publish_work_handler(struct k_work *work)
 		batch_msg.sample_count = 0;
 		return;
 	}
+	int zerr = zbus_chan_pub(&environmental_chan, &batch_msg, K_NO_WAIT);
+	if (zerr) {
+		LOG_WRN("Zbus pub environmental failed: %d", zerr);
+	}
 
 	/* Reset batch message for next batch only after successful write */
 	batch_msg.sample_count = 0;

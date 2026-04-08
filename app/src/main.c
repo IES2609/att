@@ -1302,7 +1302,7 @@ static enum smf_state_result connected_waiting_run(void *o)
 
 		if (button_msg.type == BUTTON_PRESS_SHORT) {
 			smf_set_state(SMF_CTX(state_object),
-				      &states[STATE_CONNECTED_SAMPLING]);
+				      &states[STATE_CONNECTED_SENDING]);
 
 			return SMF_EVENT_HANDLED;
 		}
