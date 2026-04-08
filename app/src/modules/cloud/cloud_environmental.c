@@ -12,6 +12,7 @@
 
 LOG_MODULE_DECLARE(cloud, CONFIG_APP_CLOUD_LOG_LEVEL);
 
+
 int cloud_environmental_send(const struct environmental_msg *env,
 			     int64_t timestamp_ms,
 			     bool confirmable)

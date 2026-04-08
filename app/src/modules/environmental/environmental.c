@@ -135,8 +135,8 @@ static void sample_publish_work_handler(struct k_work *work)
 		return;
 	}
 
-	LOG_INF("Publishing batch with %d samples (msgq, pressure_valid=%d)",
-		batch_msg.sample_count, batch_msg.pressure_valid);
+	/*LOG_INF("Publishing batch with %d samples (msgq, pressure_valid=%d)",
+		batch_msg.sample_count, batch_msg.pressure_valid);*/
 
 	/* Periodic debug print: show all sensor readings from first sample */
 	batch_publish_count++;

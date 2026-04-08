@@ -577,6 +577,16 @@ static int handle_environmental_direct(struct storage_state *state_object)
 		if (bytes_written + sizeof(msgs[msg_count]) > max_bytes) {
 			LOG_WRN("Flash full limit reached, stopping program");
 			storage_full = true;
+			int err;
+			struct storage_msg storage_msg = {
+				.type = STORAGE_THRESHOLD_REACHED,
+			};
+
+			err = zbus_chan_pub(&storage_chan, &storage_msg, PUB_TIMEOUT);
+			if (err) {
+				LOG_ERR("Failed to publish STORAGE_THRESHOLD_REACHED, err: %d", err);
+				SEND_FATAL_ERROR();
+			}
 			return -ENOSPC;
 		}
 
@@ -594,7 +604,7 @@ static int handle_environmental_direct(struct storage_state *state_object)
 		return err;
 	}
 
-	LOG_DBG("Drained and wrote %zu environmental messages", msg_count);
+	//LOG_DBG("Drained and wrote %zu environmental messages", msg_count);
 
 	return (int)msg_count;
 }
@@ -622,6 +632,16 @@ static void handle_data_message(const struct storage_state *state_object,
 	if (bytes_written + type->data_size > max_bytes) {
 		LOG_WRN("Flash full limit reached, stopping program");
 		storage_full = true; 
+		int err;
+		struct storage_msg storage_msg = {
+			.type = STORAGE_THRESHOLD_REACHED,
+		};
+
+		err = zbus_chan_pub(&storage_chan, &storage_msg, PUB_TIMEOUT);
+		if (err) {
+			LOG_ERR("Failed to publish STORAGE_THRESHOLD_REACHED, err: %d", err);
+			SEND_FATAL_ERROR();
+		}
 		return;
 	}
 
