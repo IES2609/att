@@ -126,7 +126,11 @@ static void state_buffer_pipe_active_exit(void *o);
 /*Tracking number of bytes written to flash*/
 static size_t bytes_written = 0;
 bool storage_full = false;
-static size_t max_bytes = 0x1880000; //Roughly 10% margin (LittleFS has overhead)
+/* 0xF00000: Roughly 60% of above value 
+   0x180000: Roughly 6% of above value, for debugging
+   0x26660: Roughly 1.5% of above value, for debugging */
+static size_t max_bytes = 0x26660; //Roughly 10% margin (LittleFS has overhead)
+
 
 /* Environmental dedicated fast-path storage.
  * Drains multiple messages from msgq and writes them in a single filesystem operation.
@@ -609,7 +613,7 @@ static int handle_environmental_direct(struct storage_state *state_object)
 		}
 
 		if (bytes_written + sizeof(msgs[msg_count]) > max_bytes) {
-			LOG_WRN("Flash full limit reached, stopping program");
+			LOG_WRN("Flash full limit reached, stopping handle_environmental_direct");
 			storage_full = true;
 			return -ENOSPC;
 		}
@@ -1364,9 +1368,16 @@ while (true) {
 #ifdef CONFIG_APP_ENVIRONMENTAL
 	int drained = handle_environmental_direct(&storage_state);
 	if (drained < 0) {
-		LOG_ERR("handle_environmental_direct failed: %d", drained);
-		SEND_FATAL_ERROR();
-		return;
+		if (drained == -ENOSPC || storage_full) {
+			/* Flash is full - graceful stop, not fatal */
+			LOG_WRN("Storage full: environmental writes halted (Flash at capacity)");
+			storage_full = true;
+		} else {
+			/* Other errors are fatal */
+			LOG_ERR("handle_environmental_direct failed: %d", drained);
+			SEND_FATAL_ERROR();
+			return;
+		}
 	}
 	if (drained > 0) {
 		did_work = true;
