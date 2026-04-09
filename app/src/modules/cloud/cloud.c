@@ -537,6 +537,7 @@ static void drain_environmental_stream(void)
     struct storage_data_item item;
     int ret;
     uint32_t count = 0;
+	uint32_t total_bytes_sent = 0;
 
     fs_file_t_init(&file);
 
@@ -554,10 +555,14 @@ static void drain_environmental_stream(void)
 
         /* Send to cloud via existing function */
         ret = send_storage_data_to_cloud(&item);
-        if (ret) {
-            LOG_ERR("Failed to send streamed env item %u", count);
+        if (ret == 0) {
+            /*Checking the size of the sent data*/
+            total_bytes_sent += sizeof(env_msg);
+			LOG_INF("Each batch is %zu bytes", sizeof(struct environmental_msg));
+            count++;
+        } else {
+            LOG_ERR("Failed to send streamed env item %u, error: %d", count, ret);
         }
-        count++;
         
         /* Give the system a small pause between each 100Hz packet */
         k_msleep(20); 
