@@ -260,7 +260,7 @@ static void storage_led_update_work_handler(struct k_work *work)
 	send_led_message(&led_green);
 
 	/* Reschedule for next update (every 5 seconds) */
-	k_work_schedule(&storage_led_update_work, K_SECONDS(5));
+	k_work_schedule(&storage_led_update_work, K_SECONDS(15));
 }
 
 static void task_wdt_callback(int channel_id, void *user_data)
@@ -660,7 +660,7 @@ static int handle_environmental_direct(struct storage_state *state_object)
 			if (!storage_full) {
 				storage_full = true;
 				send_led_message(&led_green);
-				k_work_schedule(&storage_led_update_work, K_SECONDS(5));
+				k_work_schedule(&storage_led_update_work, K_SECONDS(15));
 			}
 			return -ENOSPC;
 		}
@@ -1425,7 +1425,7 @@ while (true) {
 			if (!storage_full) {
 				storage_full = true;
 				send_led_message(&led_green);
-				k_work_schedule(&storage_led_update_work, K_SECONDS(5));
+				k_work_schedule(&storage_led_update_work, K_SECONDS(15));
 			}
 		} else {
 			/* Other errors are fatal */

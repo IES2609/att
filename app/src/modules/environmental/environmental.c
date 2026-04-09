@@ -490,7 +490,7 @@ static void startup_delay_work_handler(struct k_work *work)
 	send_led_message(&led_red);
 
 	/* Start periodic LED update to keep pattern active (every 5 seconds) */
-	k_work_schedule_for_queue(&environmental_workqueue, &led_update_work, K_SECONDS(5));
+	k_work_schedule_for_queue(&environmental_workqueue, &led_update_work, K_SECONDS(15));
 }
 
 /* Initialize sensor triggers and start periodic sampling */
