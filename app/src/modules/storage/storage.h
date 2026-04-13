@@ -19,6 +19,12 @@ extern "C" {
 /*Flag for full storage*/
 extern bool storage_full;
 
+/* Flag to pause environmental writes during terminal export */
+extern bool terminal_export_in_progress;
+
+/* Semaphore to synchronize file access between storage and terminal export */
+extern struct k_sem environmental_file_access_sem;
+
 /* Message types for the storage channels */
 enum storage_msg_type {
 	/* Input messages */

@@ -153,7 +153,13 @@ bool storage_full = false;
 /* 0xF00000: Roughly 60% of above value 
    0x180000: Roughly 6% of above value, for debugging
    0x26660: Roughly 1.5% of above value, for debugging */
-static size_t max_bytes = 0x26660; //Roughly 10% margin (LittleFS has overhead)
+static size_t max_bytes = 0x13330; //Roughly 10% margin (LittleFS has overhead)
+
+/* Flag to pause environmental writes while terminal export is in progress */
+bool terminal_export_in_progress = false;
+
+/* Semaphore to synchronize file access between storage writes and terminal export */
+K_SEM_DEFINE(environmental_file_access_sem, 1, 1);
 
 /* Work item for periodic LED updates when storage is full */
 static K_WORK_DELAYABLE_DEFINE(storage_led_update_work, storage_led_update_work_handler);
@@ -483,9 +489,13 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 
 	write_start_ms = k_uptime_get();
 
+	/* Acquire semaphore to synchronize access with terminal export */
+	k_sem_take(&environmental_file_access_sem, K_FOREVER);
+
 	ret = fs_open(&file, ENV_STREAM_FILE_PATH, FS_O_CREATE | FS_O_RDWR);
 	if (ret < 0) {
 		LOG_ERR("Failed to open %s: %d", ENV_STREAM_FILE_PATH, ret);
+		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
@@ -493,6 +503,7 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 	if (ret < 0) {
 		LOG_ERR("Failed to seek %s: %d", ENV_STREAM_FILE_PATH, ret);
 		(void)fs_close(&file);
+		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
@@ -500,20 +511,26 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 	if (ret < 0) {
 		LOG_ERR("Failed to write environmental stream: %d", ret);
 		(void)fs_close(&file);
+		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
 	if ((size_t)ret != total_size) {
 		LOG_ERR("Short write to environmental stream: %d/%zu", ret, total_size);
 		(void)fs_close(&file);
+		k_sem_give(&environmental_file_access_sem);
 		return -EIO;
 	}
 
 	ret = fs_close(&file);
 	if (ret < 0) {
 		LOG_ERR("Failed to close %s: %d", ENV_STREAM_FILE_PATH, ret);
+		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
+
+	/* Release semaphore to allow terminal export */
+	k_sem_give(&environmental_file_access_sem);
 
 	uint32_t write_time_ms = k_uptime_get() - write_start_ms;
 
@@ -545,28 +562,17 @@ static void environmental_stream_debug_print(void)
 	int ret;
 	int record_count = 0;
 	const int MAX_RECORDS_TO_PRINT = 10;
-	int retry_count = 0;
-	const int MAX_RETRIES = 3;
 
-	/* Retry open in case storage thread is accessing file */
-	while (retry_count < MAX_RETRIES) {
-		ret = fs_open(&file, ENV_STREAM_FILE_PATH, FS_O_READ);
-		if (ret == 0) {
-			break;
-		}
-		if (ret != -EBUSY && ret != -EAGAIN) {
-			LOG_INF("Environmental stream file not found or empty (error: %d)", ret);
-			return;
-		}
-		retry_count++;
-		if (retry_count < MAX_RETRIES) {
-			k_msleep(50);
-		}
+	/* Acquire semaphore to synchronize access with terminal export and storage writes */
+	if (k_sem_take(&environmental_file_access_sem, K_SECONDS(5)) != 0) {
+		LOG_INF("Timeout waiting for environmental file access semaphore");
+		return;
 	}
 
+	ret = fs_open(&file, ENV_STREAM_FILE_PATH, FS_O_READ);
 	if (ret < 0) {
-		LOG_INF("Failed to open environmental stream file after %d retries (error: %d)", 
-			MAX_RETRIES, ret);
+		LOG_INF("Environmental stream file not found or empty (error: %d)", ret);
+		k_sem_give(&environmental_file_access_sem);
 		return;
 	}
 
@@ -623,6 +629,9 @@ static void environmental_stream_debug_print(void)
 	LOG_INF("=== End of Environmental Data ===");
 
 	(void)fs_close(&file);
+	
+	/* Release semaphore to allow other file operations */
+	k_sem_give(&environmental_file_access_sem);
 }
 
 /* Public interface for shell commands */
@@ -641,6 +650,20 @@ static int handle_environmental_direct(struct storage_state *state_object)
 	size_t msg_count = 0;
 
 	ARG_UNUSED(state_object);
+
+	/* Pause writes if terminal export is in progress - prevents file access contention */
+	if (terminal_export_in_progress) {
+		return 0;
+	}
+
+	/* Early exit if storage is already full - prevents repeated warnings and file contention */
+	if (storage_full) {
+		/* Drain any pending messages silently and discard them */
+		while (environmental_msgq_read(&msgs[0], K_NO_WAIT) == 0) {
+			/* Just drain, don't write */
+		}
+		return 0;
+	}
 
 	/* Drain up to ENV_BULK_WRITE_MAX_RECORDS messages from queue */
 	while (msg_count < ENV_BULK_WRITE_MAX_RECORDS) {

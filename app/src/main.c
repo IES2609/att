@@ -894,6 +894,22 @@ static enum smf_state_result running_run(void *o)
 {
 	struct main_state *state_object = (struct main_state *)o;
 
+	/* Handle long button press to print environmental data */
+	if (state_object->chan == &button_chan) {
+		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
+
+		if (button_msg.type == BUTTON_PRESS_LONG && button_msg.button_number == 1) {
+			LOG_INF("Long button press detected, printing environmental stream data");
+			#ifdef CONFIG_APP_ENVIRONMENTAL
+			environmental_stream_print_to_terminal();
+			#else
+			LOG_WRN("Environmental module not enabled");
+			#endif /* CONFIG_APP_ENVIRONMENTAL */
+
+			return SMF_EVENT_HANDLED;
+		}
+	}
+
 	/* Handle FOTA download initiation at top level */
 	if (state_object->chan == &fota_chan &&
 	    MSG_TO_FOTA_TYPE(state_object->msg_buf) == FOTA_DOWNLOADING_UPDATE) {
@@ -1063,6 +1079,13 @@ static enum smf_state_result connected_run(void *o)
 		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
 
 		if (button_msg.type == BUTTON_PRESS_LONG) {
+			LOG_INF("Long button press detected, printing environmental stream data");
+			#ifdef CONFIG_APP_ENVIRONMENTAL
+			environmental_stream_print_to_terminal();
+			#else
+			LOG_WRN("Environmental module not enabled");
+			#endif /* CONFIG_APP_ENVIRONMENTAL */
+
 			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_SENDING]);
 
 			return SMF_EVENT_HANDLED;

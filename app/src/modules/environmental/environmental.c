@@ -11,6 +11,7 @@
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/smf.h>
 #include <zephyr/sys/ring_buffer.h>
+#include <zephyr/fs/fs.h>
 #include <date_time.h>
 
 #include "app_common.h"
@@ -20,10 +21,10 @@
 #include "../led/led.h"
 
 #define FS 100 /* Sampling frequency in Hz */
-#define FS_MS 1000 / FS /* Sampling frequency in milliseconds (100ms at 10 Hz) */
+#define FS_MS 1000 / FS /* Sampling frequency in milliseconds */
 
-#define ENV_FS 0.1 /* Environmental sensor (BME680) sampling frequency in Hz */
-#define ENV_FS_MS 10000/* Environmental sensor sampling frequency in milliseconds (1000/0.1) */
+#define ENV_FS 1.0 /* Environmental sensor (BME680) sampling frequency in Hz */
+#define ENV_FS_MS 1000 /* Environmental sensor sampling frequency in milliseconds (1000/1) */
 #define ENV_SAMPLES_BETWEEN_PUBLISH FS * 10 /* Include environmental data in every Nth IMU message */
 
 /* Batch message accumulation */
@@ -366,11 +367,9 @@ static void sample_collect_work_handler(struct k_work *work)
 	}
 	batch_msg.timestamp_delta_ms[idx] = delta_ms;
 
-	/* Include pressure data once per batch when available */
-	imu_sample_count++;
-	if (imu_sample_count >= ENV_SAMPLES_BETWEEN_PUBLISH && batch_msg.sample_count == 0) {
+	/* Update pressure at the start of each batch with latest available sample */
+	if (batch_msg.sample_count == 0) {
 		batch_msg.pressure = latest_pressure_pa;
-		imu_sample_count = 0;
 		LOG_DBG("Batch pressure updated: %d Pa", batch_msg.pressure);
 	}
 
@@ -424,11 +423,12 @@ static void env_sample_work_handler(struct k_work *work)
 		goto reschedule_env;
 	}
 
-	/* Update latest pressure value as fixed-point int32_t */
+	/* Update latest pressure value as fixed-point int32_t in kPa
+	 * BME680 returns pressure in kPa, multiply by 100 to store as fixed-point (101.23 kPa = 10123) */
 	double press_d = sensor_value_to_double(&press);
-	latest_pressure_pa = (int32_t)press_d;
+	latest_pressure_pa = (int32_t)(press_d * 100);  /* Store as 0.01 kPa resolution */
 
-	LOG_INF("env_sample_work_handler: BME680 pressure sampled - press=%.2f Pa",
+	LOG_INF("env_sample_work_handler: BME680 pressure sampled - press=%.2f kPa",
 		press_d);
 
 reschedule_env:
@@ -638,8 +638,24 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 		LOG_INF("Interrupt-driven sampling configured (no periodic fallback)");
 	}
 
-	/* Start environmental sensor (BME680) sampling at 0.1 Hz */
+	/* Start environmental sensor (BME680) sampling at 1 Hz */
 	if (bme680 && device_is_ready(bme680)) {
+		/* Perform initial pressure sample to populate first batches */
+		struct sensor_value press_init = { 0 };
+		err = sensor_sample_fetch(bme680);
+		if (err) {
+			LOG_WRN("Initial BME680 sample fetch failed, error: %d", err);
+		} else {
+			err = sensor_channel_get(bme680, SENSOR_CHAN_PRESS, &press_init);
+			if (err) {
+				LOG_WRN("Initial BME680 pressure read failed, error: %d", err);
+			} else {
+				double press_d = sensor_value_to_double(&press_init);
+				latest_pressure_pa = (int32_t)(press_d * 100);  /* Store as 0.01 kPa resolution */
+				LOG_INF("Initial BME680 pressure sampled - press=%.2f kPa", press_d);
+			}
+		}
+
 		err = k_work_schedule_for_queue(&environmental_workqueue, &env_sample_work, K_MSEC(ENV_FS_MS));
 		if (err < 0) {
 			LOG_ERR("k_work_schedule_for_queue env_sample_work, error: %d", err);
@@ -754,6 +770,131 @@ static void env_module_thread(void)
 		 */
 		k_sleep(K_MSEC(50));
 	}
+}
+
+/**
+ * @brief Print environmental sensor data from storage to terminal in CSV format
+ * 
+ * Reads the entire environmental_stream.bin file and outputs sensor data
+ * as CSV with columns: timestamp_ms, accel_x_g, accel_y_g, accel_z_g, 
+ * gyro_x_dps, gyro_y_dps, gyro_z_dps, pressure_pa, accel_lp_x_g, accel_lp_y_g, accel_lp_z_g
+ */
+void environmental_stream_print_to_terminal(void)
+{
+	int ret;
+	struct fs_file_t file;
+	struct environmental_msg msg;
+	uint32_t record_count = 0;
+	uint64_t base_timestamp_ms;
+	struct fs_dirent entry;
+	const char *filepath = "/att_storage/ENVIRONMENTAL_STREAM.bin";
+
+	/* Signal storage module to pause environmental writes during export */
+	terminal_export_in_progress = true;
+
+	LOG_INF("Environmental stream data export to terminal:");
+	LOG_INF("==============================================");
+
+	/* Check if file exists first */
+	ret = fs_stat(filepath, &entry);
+	if (ret < 0) {
+		LOG_WRN("Environmental stream file not found: %d (may not have been created yet)", ret);
+		printk("No environmental stream data available\n");
+		terminal_export_in_progress = false;
+		return;
+	}
+
+	LOG_INF("File found, size: %u bytes", entry.size);
+
+	/* Print CSV header */
+	printk("timestamp_ms,accel_x_g,accel_y_g,accel_z_g,gyro_x_dps,gyro_y_dps,gyro_z_dps,pressure_kpa,accel_lp_x_g,accel_lp_y_g,accel_lp_z_g\n");
+
+	/* Acquire semaphore to get exclusive access to file - retry up to 10 times */
+	int max_retries = 30;
+	int retry_count = 0;
+	while (retry_count < max_retries) {
+		if (k_sem_take(&environmental_file_access_sem, K_SECONDS(2)) == 0) {
+			break;  /* Successfully acquired semaphore */
+		}
+		retry_count++;
+		if (retry_count < max_retries) {
+			LOG_WRN("Retrying file access (attempt %d/%d)...", retry_count + 1, max_retries);
+			k_msleep(100);  /* Wait 100ms before retry */
+		}
+	}
+	
+	if (retry_count >= max_retries) {
+		LOG_ERR("Failed to acquire file access after %d attempts", max_retries);
+		printk("Error: Could not access file after multiple retries\n");
+		terminal_export_in_progress = false;
+		return;
+	}
+
+	/* Open file now that we have exclusive access */
+	ret = fs_open(&file, filepath, FS_O_READ);
+	if (ret < 0) {
+		LOG_ERR("Failed to open environmental stream file: %d", ret);
+		printk("Error opening file (code: %d)\n", ret);
+		k_sem_give(&environmental_file_access_sem);
+		terminal_export_in_progress = false;
+		return;
+	}
+
+	/* Read and process all samples from file */
+	while (1) {
+		ssize_t bytes_read = fs_read(&file, &msg, sizeof(msg));
+		if (bytes_read < (ssize_t)sizeof(msg)) {
+			/* End of file or read error */
+			if (bytes_read < 0) {
+				LOG_WRN("Error reading file: %d", (int)bytes_read);
+			}
+			break;
+		}
+
+		base_timestamp_ms = msg.batch_timestamp_ms;
+
+		/* Process each sample in the batch */
+		for (int i = 0; i < msg.sample_count; i++) {
+			uint64_t sample_timestamp = base_timestamp_ms + msg.timestamp_delta_ms[i];
+			
+			/* Convert fixed-point to float for readability */
+			double accel_x_g = (double)msg.accel_hp[0][i] / ACCEL_SCALE;
+			double accel_y_g = (double)msg.accel_hp[1][i] / ACCEL_SCALE;
+			double accel_z_g = (double)msg.accel_hp[2][i] / ACCEL_SCALE;
+			
+			double gyro_x_dps = (double)msg.gyro_hp[0][i] / GYRO_SCALE;
+			double gyro_y_dps = (double)msg.gyro_hp[1][i] / GYRO_SCALE;
+			double gyro_z_dps = (double)msg.gyro_hp[2][i] / GYRO_SCALE;
+			
+			double accel_lp_x_g = (double)msg.accel_lp[0][i] / ACCEL_SCALE;
+			double accel_lp_y_g = (double)msg.accel_lp[1][i] / ACCEL_SCALE;
+			double accel_lp_z_g = (double)msg.accel_lp[2][i] / ACCEL_SCALE;
+
+			/* Print as CSV row */
+			printk("%llu,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\n",
+				sample_timestamp,
+				accel_x_g, accel_y_g, accel_z_g,
+				gyro_x_dps, gyro_y_dps, gyro_z_dps,
+				msg.pressure / 100.0,  /* Convert from 0.01 kPa fixed-point to kPa decimal */
+				accel_lp_x_g, accel_lp_y_g, accel_lp_z_g);
+
+			/* Small delay to prevent serial buffer overflow - allow UART to drain */
+			k_msleep(4);
+
+			record_count++;
+		}
+	}
+
+	fs_close(&file);
+
+	/* Release semaphore to allow storage writes to resume */
+	k_sem_give(&environmental_file_access_sem);
+
+	LOG_INF("==============================================");
+	LOG_INF("Environmental stream export complete: %u samples", record_count);
+
+	/* Resume normal storage operations */
+	terminal_export_in_progress = false;
 }
 
 K_THREAD_DEFINE(environmental_module_thread_id,

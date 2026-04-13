@@ -80,6 +80,18 @@ struct environmental_msg {
 
 #define MSG_TO_ENVIRONMENTAL_MSG(_msg)	(*(const struct environmental_msg *)_msg)
 
+/**
+ * @brief Print environmental sensor data from storage to terminal in CSV format
+ * 
+ * Reads the entire environmental_stream.bin file and outputs sensor data
+ * as CSV with columns: timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, 
+ * pressure, accel_lp_x, accel_lp_y, accel_lp_z
+ * 
+ * Values are converted from fixed-point format to float for readability.
+ * Call this function on demand (e.g., long button press) to debug/export data.
+ */
+void environmental_stream_print_to_terminal(void);
+
 
 #ifdef __cplusplus
 }
