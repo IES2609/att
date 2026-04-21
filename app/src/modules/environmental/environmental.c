@@ -338,22 +338,9 @@ static void sample_collect_work_handler(struct k_work *work)
 			idx, accel_lp_d[0], accel_lp_d[1], accel_lp_d[2]);
 	}
 
-	/* Initialize batch timestamp on first sample (unix time in ms or uptime in ms) */
+	/* Initialize batch timestamp on first sample - always use uptime from boot */
 	if (batch_msg.sample_count == 0) {
-		uint32_t sample_time_ms = k_uptime_get();
-		uint64_t unix_time_ms = sample_time_ms;
-
-		err = date_time_now(&unix_time_ms);
-		if (err == 0) {
-			/* Unix time obtained successfully */
-			batch_msg.batch_timestamp_ms = (uint32_t)(unix_time_ms & 0xFFFFFFFFUL);
-		} else if (err == -ENODATA) {
-			/* Not synced yet, use uptime */
-			batch_msg.batch_timestamp_ms = sample_time_ms;
-		} else {
-			LOG_WRN("date_time_now error: %d", err);
-			batch_msg.batch_timestamp_ms = sample_time_ms;
-		}
+		batch_msg.batch_timestamp_ms = k_uptime_get();
 	}
 
 	/* Store timestamp delta as sample_index * sample_period (100ms at 10 Hz).
@@ -879,7 +866,7 @@ void environmental_stream_print_to_terminal(void)
 				accel_lp_x_g, accel_lp_y_g, accel_lp_z_g);
 
 			/* Small delay to prevent serial buffer overflow - allow UART to drain */
-			k_msleep(4);
+			k_usleep(2500);
 
 			record_count++;
 		}

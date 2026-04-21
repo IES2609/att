@@ -150,10 +150,11 @@ static void storage_led_update_work_handler(struct k_work *work);
 /*Tracking number of bytes written to flash*/
 static size_t bytes_written = 0;
 bool storage_full = false;
-/* 0xF00000: Roughly 60% of above value 
+/* 0xF00000: Roughly 60%  
+   0xB40000: 
    0x180000: Roughly 6% of above value, for debugging
    0x26660: Roughly 1.5% of above value, for debugging */
-static size_t max_bytes = 0x13330; //Roughly 10% margin (LittleFS has overhead)
+static size_t max_bytes = 0xB40000; //Roughly 10% margin (LittleFS has overhead)
 
 /* Flag to pause environmental writes while terminal export is in progress */
 bool terminal_export_in_progress = false;
