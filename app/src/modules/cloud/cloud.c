@@ -715,6 +715,9 @@ static void handle_storage_batch_empty(const struct storage_msg *msg)
 
 	LOG_DBG("Storage batch is empty, closing session");
 
+	LOG_INF("Nothing in storage, draining 100Hz Environmental Stream...");
+	drain_environmental_stream_raw();
+
 	err = zbus_chan_pub(&storage_chan, &close_msg, PUB_TIMEOUT);
 	if (err) {
 		LOG_ERR("Failed to close empty storage batch session, error: %d", err);
