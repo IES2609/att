@@ -1118,10 +1118,24 @@ static enum smf_state_result disconnected_sampling_run(void *o)
 		return SMF_EVENT_HANDLED;
 	}
 
-	/* Ignore other triggers while sampling */
-	if (state_object->chan == &button_chan &&
-	    MSG_TO_BUTTON_MSG(state_object->msg_buf).type == BUTTON_PRESS_SHORT) {
-		return SMF_EVENT_HANDLED;
+	/* Handle button presses while sampling */
+	if (state_object->chan == &button_chan) {
+		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
+
+		if (button_msg.type == BUTTON_PRESS_SHORT) {
+			/* Ignore short press while sampling */
+			return SMF_EVENT_HANDLED;
+		}
+
+		if (button_msg.type == BUTTON_PRESS_LONG) {
+			/* LONG press during sampling: delete file and return to waiting */
+			LOG_INF("Long button press during sampling - clearing environmental file");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+			storage_env_clear();
+#endif
+			smf_set_state(SMF_CTX(state_object), &states[STATE_DISCONNECTED_WAITING]);
+			return SMF_EVENT_HANDLED;
+		}
 	}
 
 	return SMF_EVENT_PROPAGATE;
@@ -1182,12 +1196,39 @@ static enum smf_state_result disconnected_waiting_run(void *o)
 		}
 	}
 
-	if (state_object->chan == &button_chan &&
-	    MSG_TO_BUTTON_MSG(state_object->msg_buf).type == BUTTON_PRESS_SHORT) {
-		smf_set_state(SMF_CTX(state_object),
-			      &states[STATE_DISCONNECTED_SAMPLING]);
+	if (state_object->chan == &button_chan) {
+		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
 
-		return SMF_EVENT_HANDLED;
+		if (button_msg.type == BUTTON_PRESS_SHORT) {
+			/* SHORT press behavior depends on storage state */
+			if (storage_full) {
+				/* If storage full, print CSV file to terminal */
+				LOG_INF("Storage full - short press: printing CSV");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				environmental_stream_print_to_terminal();
+#else
+				LOG_WRN("Environmental module not enabled");
+#endif
+				return SMF_EVENT_HANDLED;
+			} else {
+				/* Otherwise, start sampling */
+				smf_set_state(SMF_CTX(state_object),
+					      &states[STATE_DISCONNECTED_SAMPLING]);
+				return SMF_EVENT_HANDLED;
+			}
+		}
+
+		if (button_msg.type == BUTTON_PRESS_LONG) {
+			/* LONG press: delete file contents and restart */
+			LOG_INF("Long button press detected - clearing environmental file");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+			storage_env_clear();
+			/* Environmental module will set red LED when sampling resumes */
+			smf_set_state(SMF_CTX(state_object),
+				      &states[STATE_DISCONNECTED_SAMPLING]);
+#endif
+			return SMF_EVENT_HANDLED;
+		}
 	}
 
 	return SMF_EVENT_PROPAGATE;
@@ -1226,14 +1267,27 @@ static enum smf_state_result connected_sampling_run(void *o)
 			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_WAITING]);
 		}
 
-
 		return SMF_EVENT_HANDLED;
 	}
 
-	/* Ignore other sample triggers while sampling */
-	if (state_object->chan == &button_chan &&
-	    MSG_TO_BUTTON_MSG(state_object->msg_buf).type == BUTTON_PRESS_SHORT) {
-		return SMF_EVENT_HANDLED;
+	/* Handle button presses while sampling */
+	if (state_object->chan == &button_chan) {
+		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
+
+		if (button_msg.type == BUTTON_PRESS_SHORT) {
+			/* Ignore short press while sampling */
+			return SMF_EVENT_HANDLED;
+		}
+
+		if (button_msg.type == BUTTON_PRESS_LONG) {
+			/* LONG press during sampling: delete file and return to waiting */
+			LOG_INF("Long button press during sampling - clearing environmental file");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+			storage_env_clear();
+#endif
+			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_WAITING]);
+			return SMF_EVENT_HANDLED;
+		}
 	}
 
 	/* Handle buffer limit reached to send immediately */
@@ -1288,9 +1342,33 @@ static enum smf_state_result connected_waiting_run(void *o)
 		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
 
 		if (button_msg.type == BUTTON_PRESS_SHORT) {
+			/* SHORT press behavior depends on storage state */
+			if (storage_full) {
+				/* If storage full, print CSV file to terminal */
+				LOG_INF("Storage full - short press: printing CSV");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				environmental_stream_print_to_terminal();
+#else
+				LOG_WRN("Environmental module not enabled");
+#endif
+				return SMF_EVENT_HANDLED;
+			} else {
+				/* Otherwise, start sampling */
+				smf_set_state(SMF_CTX(state_object),
+					      &states[STATE_CONNECTED_SAMPLING]);
+				return SMF_EVENT_HANDLED;
+			}
+		}
+
+		if (button_msg.type == BUTTON_PRESS_LONG) {
+			/* LONG press: delete file contents and restart */
+			LOG_INF("Long button press detected - clearing environmental file");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+			storage_env_clear();
+			/* Environmental module will set red LED when sampling resumes */
 			smf_set_state(SMF_CTX(state_object),
 				      &states[STATE_CONNECTED_SAMPLING]);
-
+#endif
 			return SMF_EVENT_HANDLED;
 		}
 	}

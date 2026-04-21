@@ -30,34 +30,12 @@
 #ifdef CONFIG_APP_LOCATION
 #include "location.h"
 #endif
-#include "../led/led.h"
 
 /* Register log module */
 LOG_MODULE_REGISTER(storage, CONFIG_APP_STORAGE_LOG_LEVEL);
 
 /* Timeout for batch session activity (to prevent stuck sessions) */
 #define STORAGE_SESSION_TIMEOUT_SECONDS		CONFIG_APP_STORAGE_SESSION_TIMEOUT_SECONDS
-
-/* LED indicator for storage full state */
-static const struct led_msg led_green = {
-	.type = LED_RGB_SET,
-	.red = 0, 
-	.green = 255, 
-	.blue = 0,      /* Green: storage full, ready for upload */
-	.duration_on_msec = 500, .duration_off_msec = 2000,
-	.repetitions = -1  /* Infinite blinking */
-};
-
-/* Helper function to send LED messages via zbus */
-static int send_led_message(const struct led_msg *led_msg)
-{
-	int err = zbus_chan_pub(&led_chan, led_msg, K_MSEC(100));
-	if (err) {
-		LOG_WRN("Failed to publish LED message: %d", err);
-		return err;
-	}
-	return 0;
-}
 
 /* Register zbus subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(storage_subscriber);
@@ -145,26 +123,21 @@ static void state_buffer_pipe_active_entry(void *o);
 static enum smf_state_result state_buffer_pipe_active_run(void *o);
 static void state_buffer_pipe_active_exit(void *o);
 
-static void storage_led_update_work_handler(struct k_work *work);
-
 /*Tracking number of bytes written to flash*/
 static size_t bytes_written = 0;
 bool storage_full = false;
-/* 0xF00000: Roughly 60%  
-   0xB40000: 
+/* Flag to track if we've already published the storage full notification */
+static bool storage_full_notified = false;
+/* 0xF00000: Roughly 60% of above value 
    0x180000: Roughly 6% of above value, for debugging
    0x26660: Roughly 1.5% of above value, for debugging */
-static size_t max_bytes = 0xB40000; //Roughly 10% margin (LittleFS has overhead)
+static size_t max_bytes = 0x13330; //Roughly 10% margin (LittleFS has overhead)
 
-/* Flag to pause environmental writes while terminal export is in progress */
+/* Flag to pause environmental writes during terminal export */
 bool terminal_export_in_progress = false;
 
-/* Semaphore to synchronize file access between storage writes and terminal export */
-K_SEM_DEFINE(environmental_file_access_sem, 1, 1);
-
-/* Work item for periodic LED updates when storage is full */
-static K_WORK_DELAYABLE_DEFINE(storage_led_update_work, storage_led_update_work_handler);
-
+/* Semaphore to synchronize file access between storage and terminal export */
+struct k_sem environmental_file_access_sem;
 
 /* Environmental dedicated fast-path storage.
  * Drains multiple messages from msgq and writes them in a single filesystem operation.
@@ -254,24 +227,6 @@ static const struct smf_state states[] = {
 };
 
 /* Static helper functions */
-
-/* Periodic LED update handler for storage full state */
-static void storage_led_update_work_handler(struct k_work *work)
-{
-	ARG_UNUSED(work);
-
-	if (!storage_full) {
-		/* Storage no longer full - stop LED updates */
-		return;
-	}
-
-	/* Resend green LED to override any transient messages from main */
-	send_led_message(&led_green);
-
-	/* Reschedule for next update (every 5 seconds) */
-	k_work_schedule(&storage_led_update_work, K_SECONDS(15));
-}
-
 static void task_wdt_callback(int channel_id, void *user_data)
 {
 	LOG_ERR("Watchdog expired, Channel: %d, Thread: %s",
@@ -490,13 +445,9 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 
 	write_start_ms = k_uptime_get();
 
-	/* Acquire semaphore to synchronize access with terminal export */
-	k_sem_take(&environmental_file_access_sem, K_FOREVER);
-
 	ret = fs_open(&file, ENV_STREAM_FILE_PATH, FS_O_CREATE | FS_O_RDWR);
 	if (ret < 0) {
 		LOG_ERR("Failed to open %s: %d", ENV_STREAM_FILE_PATH, ret);
-		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
@@ -504,7 +455,6 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 	if (ret < 0) {
 		LOG_ERR("Failed to seek %s: %d", ENV_STREAM_FILE_PATH, ret);
 		(void)fs_close(&file);
-		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
@@ -512,26 +462,20 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 	if (ret < 0) {
 		LOG_ERR("Failed to write environmental stream: %d", ret);
 		(void)fs_close(&file);
-		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
 	if ((size_t)ret != total_size) {
 		LOG_ERR("Short write to environmental stream: %d/%zu", ret, total_size);
 		(void)fs_close(&file);
-		k_sem_give(&environmental_file_access_sem);
 		return -EIO;
 	}
 
 	ret = fs_close(&file);
 	if (ret < 0) {
 		LOG_ERR("Failed to close %s: %d", ENV_STREAM_FILE_PATH, ret);
-		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
-
-	/* Release semaphore to allow terminal export */
-	k_sem_give(&environmental_file_access_sem);
 
 	uint32_t write_time_ms = k_uptime_get() - write_start_ms;
 
@@ -563,17 +507,28 @@ static void environmental_stream_debug_print(void)
 	int ret;
 	int record_count = 0;
 	const int MAX_RECORDS_TO_PRINT = 10;
+	int retry_count = 0;
+	const int MAX_RETRIES = 3;
 
-	/* Acquire semaphore to synchronize access with terminal export and storage writes */
-	if (k_sem_take(&environmental_file_access_sem, K_SECONDS(5)) != 0) {
-		LOG_INF("Timeout waiting for environmental file access semaphore");
-		return;
+	/* Retry open in case storage thread is accessing file */
+	while (retry_count < MAX_RETRIES) {
+		ret = fs_open(&file, ENV_STREAM_FILE_PATH, FS_O_READ);
+		if (ret == 0) {
+			break;
+		}
+		if (ret != -EBUSY && ret != -EAGAIN) {
+			LOG_INF("Environmental stream file not found or empty (error: %d)", ret);
+			return;
+		}
+		retry_count++;
+		if (retry_count < MAX_RETRIES) {
+			k_msleep(50);
+		}
 	}
 
-	ret = fs_open(&file, ENV_STREAM_FILE_PATH, FS_O_READ);
 	if (ret < 0) {
-		LOG_INF("Environmental stream file not found or empty (error: %d)", ret);
-		k_sem_give(&environmental_file_access_sem);
+		LOG_INF("Failed to open environmental stream file after %d retries (error: %d)", 
+			MAX_RETRIES, ret);
 		return;
 	}
 
@@ -630,15 +585,55 @@ static void environmental_stream_debug_print(void)
 	LOG_INF("=== End of Environmental Data ===");
 
 	(void)fs_close(&file);
-	
-	/* Release semaphore to allow other file operations */
-	k_sem_give(&environmental_file_access_sem);
 }
 
 /* Public interface for shell commands */
 void storage_env_print(void)
 {
 	environmental_stream_debug_print();
+}
+
+/* Clear environmental data file and reset tracking variables */
+void storage_env_clear(void)
+{
+	int err;
+
+	LOG_INF("=== Environmental File Clear Starting ===");
+
+#ifdef CONFIG_APP_ENVIRONMENTAL
+	/* Log final file size before deletion */
+	log_environmental_stream_size();
+	
+	/* Check if file exists before trying to delete */
+	struct fs_dirent file_entry;
+	err = fs_stat(ENV_STREAM_FILE_PATH, &file_entry);
+	if (err < 0) {
+		/* File doesn't exist - this is expected */
+		LOG_INF("Environmental stream file doesn't exist");
+	} else {
+		/* File exists, delete it */
+		err = fs_unlink(ENV_STREAM_FILE_PATH);
+		if (err < 0) {
+			LOG_ERR("Failed to delete %s: %d", ENV_STREAM_FILE_PATH, err);
+			SEND_FATAL_ERROR();
+		} else {
+			LOG_INF("Environmental stream file deleted successfully");
+		}
+	}
+
+	/* Reset environmental stream tracking */
+	env_stream.initialized = false;
+	env_stream.file_offset = 0;
+	env_stream.records_written = 0;
+	env_stream.write_count = 0;
+	
+	/* Reset generic tracking variables */
+	bytes_written = 0;
+	storage_full = false;
+	storage_full_notified = false;
+#endif
+
+	LOG_INF("=== Environmental File Clear Complete ===");
 }
 
 /* Drain multiple environmental messages from the queue and write them in bulk.
@@ -651,20 +646,6 @@ static int handle_environmental_direct(struct storage_state *state_object)
 	size_t msg_count = 0;
 
 	ARG_UNUSED(state_object);
-
-	/* Pause writes if terminal export is in progress - prevents file access contention */
-	if (terminal_export_in_progress) {
-		return 0;
-	}
-
-	/* Early exit if storage is already full - prevents repeated warnings and file contention */
-	if (storage_full) {
-		/* Drain any pending messages silently and discard them */
-		while (environmental_msgq_read(&msgs[0], K_NO_WAIT) == 0) {
-			/* Just drain, don't write */
-		}
-		return 0;
-	}
 
 	/* Drain up to ENV_BULK_WRITE_MAX_RECORDS messages from queue */
 	while (msg_count < ENV_BULK_WRITE_MAX_RECORDS) {
@@ -683,10 +664,22 @@ static int handle_environmental_direct(struct storage_state *state_object)
 
 		if (bytes_written + sizeof(msgs[msg_count]) > max_bytes) {
 			LOG_WRN("Flash full limit reached, stopping handle_environmental_direct");
-			if (!storage_full) {
+			
+			/* Only publish notification once when transitioning to full */
+			if (!storage_full_notified) {
 				storage_full = true;
-				send_led_message(&led_green);
-				k_work_schedule(&storage_led_update_work, K_SECONDS(15));
+				storage_full_notified = true;
+				int err;
+				struct storage_msg storage_msg = {
+					.type = STORAGE_THRESHOLD_REACHED,
+				};
+
+				err = zbus_chan_pub(&storage_chan, &storage_msg, PUB_TIMEOUT);
+				if (err) {
+					LOG_ERR("Failed to publish STORAGE_THRESHOLD_REACHED, err: %d", err);
+				}
+			} else {
+				storage_full = true;
 			}
 			return -ENOSPC;
 		}
@@ -705,7 +698,7 @@ static int handle_environmental_direct(struct storage_state *state_object)
 		return err;
 	}
 
-	LOG_DBG("Drained and wrote %zu environmental messages", msg_count);
+	//LOG_DBG("Drained and wrote %zu environmental messages", msg_count);
 
 	return (int)msg_count;
 }
@@ -732,10 +725,22 @@ static void handle_data_message(const struct storage_state *state_object,
 
 	if (bytes_written + type->data_size > max_bytes) {
 		LOG_WRN("Flash full limit reached, stopping program");
-		if (!storage_full) {
+		
+		/* Only publish notification once when transitioning to full */
+		if (!storage_full_notified) {
 			storage_full = true;
-			send_led_message(&led_green);
-			k_work_schedule(&storage_led_update_work, K_SECONDS(5));
+			storage_full_notified = true;
+			int err;
+			struct storage_msg storage_msg = {
+				.type = STORAGE_THRESHOLD_REACHED,
+			};
+
+			err = zbus_chan_pub(&storage_chan, &storage_msg, PUB_TIMEOUT);
+			if (err) {
+				LOG_ERR("Failed to publish STORAGE_THRESHOLD_REACHED, err: %d", err);
+			}
+		} else {
+			storage_full = true;
 		}
 		return;
 	}
@@ -1203,11 +1208,30 @@ static void state_running_entry(void *o)
 
 	k_work_init_delayable(&storage_state->session_timeout_work, session_timeout_work_fn);
 
-	/* Clear storage on boot to ensure clean state */
-	LOG_INF("Clearing storage on boot...");
-	storage_clear();
-
 #ifdef CONFIG_APP_ENVIRONMENTAL
+	/* Recover environmental file state from previous run (file persists across reboots) */
+	LOG_INF("Recovering environmental stream file state...");
+	err = environmental_stream_init();
+	if (err) {
+		LOG_WRN("Environmental stream recovery failed, starting fresh: %d", err);
+	}
+
+	/* Check if we recovered any data */
+	if (env_stream.file_offset > 0) {
+		LOG_INF("Recovered environmental file: %zu bytes, %u records",
+			env_stream.file_offset, env_stream.records_written);
+		/* Set tracking variables to match recovered state */
+		bytes_written = env_stream.file_offset;
+		if (bytes_written >= max_bytes) {
+			storage_full = true;
+			LOG_WRN("Storage full - recovered file is at capacity");
+		}
+	} else {
+		LOG_INF("No existing environmental file found - starting fresh");
+		bytes_written = 0;
+		storage_full = false;
+	}
+
 	/* Debug: Read and display stored environmental data */
 	environmental_stream_debug_print();
 #endif /* CONFIG_APP_ENVIRONMENTAL */
@@ -1432,6 +1456,9 @@ static void storage_thread(void)
 	/* Initialize the state machine */
 	smf_set_initial(SMF_CTX(&storage_state), &states[STATE_RUNNING]);
 
+	/* Initialize environmental file access semaphore */
+	k_sem_init(&environmental_file_access_sem, 1, 1);
+
 while (true) {
 	bool did_work = false;
 
@@ -1448,11 +1475,7 @@ while (true) {
 		if (drained == -ENOSPC || storage_full) {
 			/* Flash is full - graceful stop, not fatal */
 			LOG_WRN("Storage full: environmental writes halted (Flash at capacity)");
-			if (!storage_full) {
-				storage_full = true;
-				send_led_message(&led_green);
-				k_work_schedule(&storage_led_update_work, K_SECONDS(15));
-			}
+			storage_full = true;
 		} else {
 			/* Other errors are fatal */
 			LOG_ERR("handle_environmental_direct failed: %d", drained);

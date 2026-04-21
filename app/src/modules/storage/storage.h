@@ -178,6 +178,9 @@ ZBUS_CHAN_DECLARE(storage_data_chan);
 /* Debug interface: Print stored environmental data (shell command) */
 void storage_env_print(void);
 
+/* Clear environmental data file and reset tracking */
+void storage_env_clear(void);
+
 #ifdef __cplusplus
 }
 #endif
