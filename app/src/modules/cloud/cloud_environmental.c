@@ -27,26 +27,26 @@ int cloud_environmental_send(const struct environmental_msg *env,
         err = nrf_cloud_coap_sensor_send(NRF_CLOUD_JSON_APPID_VAL_AIR_PRESS,
                                          (double)env->pressure,
                                          timestamp_ms,
-                                         confirmable);
+                                         false);
         if (err) {
             LOG_ERR("Failed to send pressure: %d", err);
         }
     }
 
-    double accel_x = (double)env->accel_hp[0][0] / 16384.0;
+    double accel_x = (double)env->accel_hp[0][0] / ACCEL_SCALE;
     err = nrf_cloud_coap_sensor_send("ACCEL_X", 
                                      accel_x, 
                                      timestamp_ms, 
-                                     confirmable);
+                                     false);
     if (err) {
         LOG_ERR("Failed to send Accel-X: %d", err);
     }
 
-    double gyro_x = (double)env->gyro_hp[0][0] / 16.4;
+    double gyro_x = (double)env->gyro_hp[0][0] / GYRO_SCALE;
     err = nrf_cloud_coap_sensor_send("GYRO_X", 
                                      gyro_x, 
                                      timestamp_ms, 
-                                     confirmable);
+                                     false);
     if (err) {
         LOG_ERR("Failed to send Gyro-X: %d", err);
     }

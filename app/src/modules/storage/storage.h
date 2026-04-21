@@ -172,6 +172,8 @@ ZBUS_CHAN_DECLARE(storage_data_chan);
 /* Debug interface: Print stored environmental data (shell command) */
 void storage_env_print(void);
 
+bool storage_is_full(void);
+
 #ifdef __cplusplus
 }
 #endif

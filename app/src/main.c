@@ -949,6 +949,7 @@ static enum smf_state_result disconnected_run(void *o)
 		}
 	}
 
+	/*
 	//detects long button press to trigger LTE connection 
 	if (state_object->chan == &button_chan) {
 		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
@@ -971,15 +972,14 @@ static enum smf_state_result disconnected_run(void *o)
 			return SMF_EVENT_HANDLED;
 		}
 	}
-
+	*/
 	
-	/*
-	//Detects if the storage threshold has been reached and initiates a network connection. testing with button press
-	if (state_object->chan == &storage_chan || state_object->chan == &button_chan) {
+	
+	//Detects if the storage threshold has been reached and initiates a network connection.
+	if (state_object->chan == &storage_chan) {
 		struct storage_msg *msg = MSG_TO_STORAGE_MSG_PTR(state_object->msg_buf);
-		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
 
-		if (msg->type == STORAGE_THRESHOLD_REACHED || button_msg.type == BUTTON_PRESS_SHORT) {
+		if (msg->type == STORAGE_THRESHOLD_REACHED) {
 			int err;
 			struct network_msg net_msg = {
 				.type = NETWORK_CONNECT,
@@ -992,12 +992,12 @@ static enum smf_state_result disconnected_run(void *o)
 				return SMF_EVENT_HANDLED;
 			}
 
-			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED]);
+			//smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED]);
 
 			return SMF_EVENT_HANDLED;
 		}
 	}
-	*/
+	
 	/* Restart cloud send timer while disconnected */
 	if (state_object->chan == &timer_chan &&
 	    MSG_TO_TIMER_TYPE(state_object->msg_buf) == TIMER_EXPIRED_CLOUD) {
@@ -1067,9 +1067,18 @@ static enum smf_state_result connected_run(void *o)
 		const struct cloud_msg *msg = MSG_TO_CLOUD_MSG_PTR(state_object->msg_buf);
 
 		switch (msg->type) {
+		case CLOUD_CONNECTED:
+			/*
+            if (storage_is_full()) {
+                smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_SENDING]);
+            } else {
+                smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_WAITING]);
+            }
+			*/
+			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_SENDING]);
+            return SMF_EVENT_HANDLED;
 		case CLOUD_DISCONNECTED:
 			smf_set_state(SMF_CTX(state_object), &states[STATE_DISCONNECTED]);
-
 			return SMF_EVENT_HANDLED;
 		case CLOUD_SHADOW_RESPONSE_DESIRED:
 			__fallthrough;
@@ -1079,7 +1088,6 @@ static enum smf_state_result connected_run(void *o)
 			 __fallthrough;
 		case CLOUD_SHADOW_RESPONSE_EMPTY_DESIRED:
 			handle_cloud_shadow_response(state_object, msg);
-
 			return SMF_EVENT_HANDLED;
 		default:
 			break;

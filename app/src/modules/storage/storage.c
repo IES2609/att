@@ -192,6 +192,12 @@ struct storage_state {
 	bool threshold_notified[STORAGE_DATA_TYPE_COUNT];
 };
 
+/*Function used in main to check the storage flag*/
+bool storage_is_full(void)
+{
+    return storage_full;
+}
+
 /* Delayable work for session timeout */
 static void session_timeout_work_fn(struct k_work *work);
 

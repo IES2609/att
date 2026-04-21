@@ -12,6 +12,7 @@
 #include <net/nrf_cloud.h>
 #include <net/nrf_cloud_coap.h>
 #include <net/nrf_cloud_rest.h>
+#include <net/nrf_cloud_codec.h>
 #include <nrf_cloud_coap_transport.h>
 #include <zephyr/net/coap.h>
 #include <zephyr/fs/fs.h>
@@ -42,6 +43,9 @@ LOG_MODULE_REGISTER(cloud, CONFIG_APP_CLOUD_LOG_LEVEL);
 
 #define CUSTOM_JSON_APPID_VAL_BATTERY "BATTERY"
 #define AGNSS_MAX_DATA_SIZE 3800
+#define BULK_SIZE 1024
+
+static bool is_draining = false;
 
 /* Prevent nRF Provisioning Shell from being used to trigger provisioning.
  * The cloud state machine does not support out of order provisioning via nRF Provisioning shell.
@@ -530,51 +534,103 @@ static int request_storage_batch_data(uint32_t session_id)
 	return 0;
 }
 
-static void drain_environmental_stream(void)
+/*Fake data used for testing*/
+static int drain_environmental_stream_raw(void)
+{
+    int err;
+    uint64_t timestamp_ms = 1677836800000;
+
+    struct test_data {
+        uint64_t timestamp;
+        double ax1_x, ax1_y, ax1_z;
+        double ax2_x, ax2_y, ax2_z;
+        double gyr_x, gyr_y, gyr_z;
+    };
+
+    struct payload_data {
+        uint32_t count;
+        uint32_t sequence;
+        struct test_data data[10];
+    } payload;
+
+    /* Generate garbage data for testing */
+    for (size_t i = 0; i < 10; i++) {
+        payload.count = 10;
+        payload.sequence = (uint32_t)i;
+
+        for (size_t j = 0; j < 10; j++) {
+            payload.data[j].timestamp = timestamp_ms + (j * 10);
+            payload.data[j].ax1_x = 25.5 + j;  
+            payload.data[j].ax1_y = 1013.2 + j; 
+            payload.data[j].ax1_z = 40.0 + j;   
+            
+            payload.data[j].ax2_x = 1.0 + j;
+            payload.data[j].ax2_y = 0.0 + j;
+            payload.data[j].ax2_z = 9.8 + j;
+            
+            payload.data[j].gyr_x = 0.1 * j;
+            payload.data[j].gyr_y = 0.2 * j;
+            payload.data[j].gyr_z = 0.3 * j;
+        }
+
+        LOG_INF("Sending environmental data to cloud, len %d, timestamp: %lld",
+    	sizeof(payload), payload.data[i].timestamp);
+
+        err = nrf_cloud_coap_bytes_send(
+            (uint8_t *)&payload,
+            sizeof(payload),
+            true); // confirmable = true
+
+        if (err) {
+            LOG_ERR("Failed to send, error: %d", err);
+            return err;
+        }
+        
+        k_msleep(500);
+    }
+    return 0;
+}
+
+/*Reading raw data from file*/
+/*
+static void drain_environmental_stream_raw(void)
 {
     struct fs_file_t file;
-    struct environmental_msg env_msg;
-    struct storage_data_item item;
-    int ret;
-    uint32_t count = 0;
-	uint32_t total_bytes_sent = 0;
-
     fs_file_t_init(&file);
 
-    /* Opening file where the environmental data is saved*/
-    ret = fs_open(&file, "/att_storage/ENVIRONMENTAL_STREAM.bin", FS_O_READ);
-    if (ret < 0) {
-        LOG_INF("No environmental stream file found to drain (error %d)", ret);
+    if (fs_open(&file, "/att_storage/ENVIRONMENTAL_STREAM.bin", FS_O_READ) < 0) {
+        LOG_ERR("Failed to open file");
         return;
     }
 
-    /* Reading data from the file */
-    while (fs_read(&file, &env_msg, sizeof(env_msg)) == sizeof(env_msg)) {
-        item.type = STORAGE_TYPE_ENVIRONMENTAL;
-        item.data.ENVIRONMENTAL = env_msg;
+    uint8_t buf[BULK_SIZE];
+    ssize_t bytes_read;
+    uint32_t total_sent = 0;
+    bool success = true;
 
-        /* Send to cloud via existing function */
-        ret = send_storage_data_to_cloud(&item);
-        if (ret == 0) {
-            /*Checking the size of the sent data*/
-            total_bytes_sent += sizeof(env_msg);
-			LOG_INF("Each batch is %zu bytes", sizeof(struct environmental_msg));
-            count++;
-        } else {
-            LOG_ERR("Failed to send streamed env item %u, error: %d", count, ret);
+    while ((bytes_read = fs_read(&file, buf, sizeof(buf))) > 0) {
+        int err = nrf_cloud_coap_bytes_send(buf, (size_t)bytes_read, true);
+        if (err) {
+            LOG_ERR("Send failed: %d. Aborting.", err);
+            success = false;
+            break;
         }
-        
-        /* Give the system a small pause between each 100Hz packet */
-        k_msleep(20); 
+        total_sent += bytes_read;
+        LOG_INF("Sent %u bytes so far", total_sent);
+
+        k_msleep(200);
     }
 
     fs_close(&file);
 
-    /* Delete the file after draining, this was used for testing */
-    fs_unlink("/att_storage/ENVIRONMENTAL_STREAM.bin");
-    LOG_INF("Drained and deleted 100Hz stream: %u records sent", count);
+    if (success) {
+        LOG_INF("Raw drain complete (%u bytes). Deleting file.", total_sent);
+        fs_unlink("/att_storage/ENVIRONMENTAL_STREAM.bin");
+    } else {
+        LOG_WRN("Drain incomplete. Data preserved for retry.");
+    }
 }
-
+*/
 static void handle_storage_batch_available(const struct storage_msg *msg)
 {
 	int err;
@@ -629,7 +685,7 @@ static void handle_storage_batch_available(const struct storage_msg *msg)
 
 	if (!session_error) {
         LOG_INF("Standard batch complete. Draining 100Hz Environmental Stream...");
-        drain_environmental_stream(); 
+        drain_environmental_stream_raw(); 
     }
 
 	if (items_processed > 0) {
