@@ -11,6 +11,7 @@
 #include <zephyr/task_wdt/task_wdt.h>
 #include <zephyr/smf.h>
 #include <zephyr/sys/ring_buffer.h>
+#include <zephyr/fs/fs.h>
 #include <date_time.h>
 
 #include "app_common.h"
@@ -20,10 +21,10 @@
 #include "../led/led.h"
 
 #define FS 100 /* Sampling frequency in Hz */
-#define FS_MS 1000 / FS /* Sampling frequency in milliseconds (100ms at 10 Hz) */
+#define FS_MS 1000 / FS /* Sampling frequency in milliseconds */
 
-#define ENV_FS 0.1 /* Environmental sensor (BME680) sampling frequency in Hz */
-#define ENV_FS_MS 10000/* Environmental sensor sampling frequency in milliseconds (1000/0.1) */
+#define ENV_FS 1.0 /* Environmental sensor (BME680) sampling frequency in Hz */
+#define ENV_FS_MS 1000 /* Environmental sensor sampling frequency in milliseconds (1000/1) */
 #define ENV_SAMPLES_BETWEEN_PUBLISH FS * 10 /* Include environmental data in every Nth IMU message */
 
 /* Batch message accumulation */
@@ -337,22 +338,9 @@ static void sample_collect_work_handler(struct k_work *work)
 			idx, accel_lp_d[0], accel_lp_d[1], accel_lp_d[2]);
 	}
 
-	/* Initialize batch timestamp on first sample (unix time in ms or uptime in ms) */
+	/* Initialize batch timestamp on first sample - always use uptime from boot */
 	if (batch_msg.sample_count == 0) {
-		uint32_t sample_time_ms = k_uptime_get();
-		uint64_t unix_time_ms = sample_time_ms;
-
-		err = date_time_now(&unix_time_ms);
-		if (err == 0) {
-			/* Unix time obtained successfully */
-			batch_msg.batch_timestamp_ms = (uint32_t)(unix_time_ms & 0xFFFFFFFFUL);
-		} else if (err == -ENODATA) {
-			/* Not synced yet, use uptime */
-			batch_msg.batch_timestamp_ms = sample_time_ms;
-		} else {
-			LOG_WRN("date_time_now error: %d", err);
-			batch_msg.batch_timestamp_ms = sample_time_ms;
-		}
+		batch_msg.batch_timestamp_ms = k_uptime_get();
 	}
 
 	/* Store timestamp delta as sample_index * sample_period (100ms at 10 Hz).
@@ -366,11 +354,9 @@ static void sample_collect_work_handler(struct k_work *work)
 	}
 	batch_msg.timestamp_delta_ms[idx] = delta_ms;
 
-	/* Include pressure data once per batch when available */
-	imu_sample_count++;
-	if (imu_sample_count >= ENV_SAMPLES_BETWEEN_PUBLISH && batch_msg.sample_count == 0) {
+	/* Update pressure at the start of each batch with latest available sample */
+	if (batch_msg.sample_count == 0) {
 		batch_msg.pressure = latest_pressure_pa;
-		imu_sample_count = 0;
 		LOG_DBG("Batch pressure updated: %d Pa", batch_msg.pressure);
 	}
 
@@ -424,11 +410,12 @@ static void env_sample_work_handler(struct k_work *work)
 		goto reschedule_env;
 	}
 
-	/* Update latest pressure value as fixed-point int32_t */
+	/* Update latest pressure value as fixed-point int32_t in kPa
+	 * BME680 returns pressure in kPa, multiply by 100 to store as fixed-point (101.23 kPa = 10123) */
 	double press_d = sensor_value_to_double(&press);
-	latest_pressure_pa = (int32_t)press_d;
+	latest_pressure_pa = (int32_t)(press_d * 100);  /* Store as 0.01 kPa resolution */
 
-	LOG_INF("env_sample_work_handler: BME680 pressure sampled - press=%.2f Pa",
+	LOG_INF("env_sample_work_handler: BME680 pressure sampled - press=%.2f kPa",
 		press_d);
 
 reschedule_env:
@@ -638,8 +625,24 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 		LOG_INF("Interrupt-driven sampling configured (no periodic fallback)");
 	}
 
-	/* Start environmental sensor (BME680) sampling at 0.1 Hz */
+	/* Start environmental sensor (BME680) sampling at 1 Hz */
 	if (bme680 && device_is_ready(bme680)) {
+		/* Perform initial pressure sample to populate first batches */
+		struct sensor_value press_init = { 0 };
+		err = sensor_sample_fetch(bme680);
+		if (err) {
+			LOG_WRN("Initial BME680 sample fetch failed, error: %d", err);
+		} else {
+			err = sensor_channel_get(bme680, SENSOR_CHAN_PRESS, &press_init);
+			if (err) {
+				LOG_WRN("Initial BME680 pressure read failed, error: %d", err);
+			} else {
+				double press_d = sensor_value_to_double(&press_init);
+				latest_pressure_pa = (int32_t)(press_d * 100);  /* Store as 0.01 kPa resolution */
+				LOG_INF("Initial BME680 pressure sampled - press=%.2f kPa", press_d);
+			}
+		}
+
 		err = k_work_schedule_for_queue(&environmental_workqueue, &env_sample_work, K_MSEC(ENV_FS_MS));
 		if (err < 0) {
 			LOG_ERR("k_work_schedule_for_queue env_sample_work, error: %d", err);
