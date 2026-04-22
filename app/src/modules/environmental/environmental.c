@@ -866,7 +866,7 @@ void environmental_stream_print_to_terminal(void)
 				accel_lp_x_g, accel_lp_y_g, accel_lp_z_g);
 
 			/* Small delay to prevent serial buffer overflow - allow UART to drain */
-			k_usleep(2200);
+			k_usleep(2500);
 
 			record_count++;
 		}
