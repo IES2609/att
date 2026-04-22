@@ -538,7 +538,14 @@ static int request_storage_batch_data(uint32_t session_id)
 static int drain_environmental_stream_raw(void)
 {
     int err;
-    uint64_t timestamp_ms = 1776766857812;
+    int64_t timestamp_ms = NRF_CLOUD_NO_TIMESTAMP;
+	date_time_now(&timestamp_ms);
+
+	err = handle_data_timestamp(&timestamp_ms);
+    if (err) {
+        LOG_ERR("Cannot validate timestamp for environmental test data: %d", err);
+        return err;
+    }
 
     struct test_data {
         uint64_t timestamp;
