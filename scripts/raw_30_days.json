@@ -1,0 +1,1206 @@
+{
+  "items": [
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:50.840Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607953
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:50.497Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00360107421875,
+        "ts": 1896607953
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:50.258Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607853
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:50.025Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00482177734375,
+        "ts": 1896607853
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:49.777Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607754
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:49.538Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0042724609375,
+        "ts": 1896607754
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:49.297Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607654
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:49.059Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0003662109375,
+        "ts": 1896607654
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:48.817Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607554
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:48.578Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00531005859375,
+        "ts": 1896607554
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:48.338Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607455
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:48.096Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00482177734375,
+        "ts": 1896607455
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:47.858Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607356
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:47.617Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.000244140625,
+        "ts": 1896607356
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:47.377Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607256
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:47.138Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.005126953125,
+        "ts": 1896607256
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:46.901Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607157
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:46.658Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00250244140625,
+        "ts": 1896607157
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:46.418Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896607057
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:46.179Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00390625,
+        "ts": 1896607057
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:45.939Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606957
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:45.698Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00616455078125,
+        "ts": 1896606957
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:45.459Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606858
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:45.223Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0030517578125,
+        "ts": 1896606858
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:44.976Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606759
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:44.738Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00469970703125,
+        "ts": 1896606759
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:44.497Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606659
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:44.259Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00469970703125,
+        "ts": 1896606659
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:44.027Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606559
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:43.776Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00250244140625,
+        "ts": 1896606559
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:43.535Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606460
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:43.218Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00286865234375,
+        "ts": 1896606460
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:42.978Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606360
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:42.737Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0035400390625,
+        "ts": 1896606360
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:42.498Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606261
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:42.258Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00408935546875,
+        "ts": 1896606261
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:42.022Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606161
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:41.777Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0023193359375,
+        "ts": 1896606161
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:41.537Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896606062
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:41.300Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0035400390625,
+        "ts": 1896606062
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:41.057Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605962
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:40.821Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00396728515625,
+        "ts": 1896605962
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:40.576Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605862
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:40.340Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00262451171875,
+        "ts": 1896605862
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:40.099Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605763
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:39.859Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0045166015625,
+        "ts": 1896605763
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:39.616Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605663
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:39.376Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.002685546875,
+        "ts": 1896605663
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:39.138Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605564
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:38.897Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0037841796875,
+        "ts": 1896605564
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:38.657Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605464
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:38.418Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0042724609375,
+        "ts": 1896605464
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:38.179Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605365
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:37.971Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00311279296875,
+        "ts": 1896605365
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:37.616Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605265
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:37.377Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00396728515625,
+        "ts": 1896605265
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:37.137Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605165
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:36.896Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00616455078125,
+        "ts": 1896605165
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:36.657Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896605066
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:36.418Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0037841796875,
+        "ts": 1896605066
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:36.181Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604967
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:35.936Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.003173828125,
+        "ts": 1896604967
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:35.697Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604867
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:35.460Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.005126953125,
+        "ts": 1896604867
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:35.219Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604767
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:34.977Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00311279296875,
+        "ts": 1896604767
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:34.737Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604668
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:34.496Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00408935546875,
+        "ts": 1896604668
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:34.256Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604568
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:34.017Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.003173828125,
+        "ts": 1896604568
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:33.778Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604469
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:33.537Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00518798828125,
+        "ts": 1896604469
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:33.299Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604369
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:33.057Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00286865234375,
+        "ts": 1896604369
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:32.816Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604270
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:32.577Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00390625,
+        "ts": 1896604270
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:32.338Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604170
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:32.097Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00445556640625,
+        "ts": 1896604170
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:31.858Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896604071
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:31.617Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0023193359375,
+        "ts": 1896604071
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:31.377Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603971
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:31.141Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00347900390625,
+        "ts": 1896603971
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:30.897Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603872
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:30.656Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00372314453125,
+        "ts": 1896603872
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:30.418Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603772
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:30.180Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.004150390625,
+        "ts": 1896603772
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:29.937Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603672
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:29.696Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00335693359375,
+        "ts": 1896603672
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:29.458Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603573
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:29.217Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00506591796875,
+        "ts": 1896603573
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:28.980Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603473
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:28.736Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00531005859375,
+        "ts": 1896603473
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:28.497Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603374
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:28.259Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.0015869140625,
+        "ts": 1896603374
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:28.018Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603274
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:27.777Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00238037109375,
+        "ts": 1896603274
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:27.536Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603175
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:27.298Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00408935546875,
+        "ts": 1896603175
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:27.058Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "GYRO_X",
+        "data": 0.0,
+        "ts": 1896603075
+      }
+    },
+    {
+      "tenantId": "04c344cf-9c00-40c1-995a-9422a204a816",
+      "topic": "prod/04c344cf-9c00-40c1-995a-9422a204a816/m/d/5042394b-3538-429e-809f-12257654e0ce/d2c",
+      "deviceId": "5042394b-3538-429e-809f-12257654e0ce",
+      "receivedAt": "2026-04-09T07:07:26.817Z",
+      "message": {
+        "messageType": "DATA",
+        "appId": "ACCEL_X",
+        "data": -0.00396728515625,
+        "ts": 1896603075
+      }
+    }
+  ],
+  "pageNextToken": "eJyNzDEOwjAMAMC_ZMaS7dhJzMzCDnMU3ETq0AqJwoL4O-rCzAPu3uHS17Zu5ykcA4pHER9gjgiCTmCmDUyYG6O0QikcfqKe-mv2_jetisLR5AZRYwFh61DQBhCz5qTS0fv-z0t_bG251-tz3nPKWTMVkVQoV6wDkyKnBrlMETKbQKRkEF1dphEJSwqfL_ueOPc",
+  "total": 100
+}
