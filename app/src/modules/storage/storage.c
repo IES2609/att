@@ -129,7 +129,7 @@ bool storage_full = false;
 /* 0xF00000: Roughly 60% of above value 
    0x180000: Roughly 6% of above value, for debugging
    0x26660: Roughly 1.5% of above value, for debugging */
-static size_t max_bytes = 0x26660; //Roughly 10% margin (LittleFS has overhead)
+static size_t max_bytes = 0x300000; //Roughly 10% margin (LittleFS has overhead)
 
 
 /* Environmental dedicated fast-path storage.

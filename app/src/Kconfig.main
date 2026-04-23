@@ -7,7 +7,7 @@ menu "App"
 
 config APP_SAMPLING_INTERVAL_SECONDS
 	int "Sampling interval"
-	default 240
+	default 290
 	help
 	  Interval in seconds that determines how often sensor and location data is
 	  collected.

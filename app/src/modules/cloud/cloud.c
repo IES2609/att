@@ -43,7 +43,7 @@ LOG_MODULE_REGISTER(cloud, CONFIG_APP_CLOUD_LOG_LEVEL);
 
 #define CUSTOM_JSON_APPID_VAL_BATTERY "BATTERY"
 #define AGNSS_MAX_DATA_SIZE 3800
-#define BULK_SIZE 1024
+static const size_t BULK_SIZE = 2048;
 
 static bool is_draining = false;
 
@@ -498,7 +498,7 @@ static int send_storage_data_to_cloud(const struct storage_data_item *item)
 	if (item->type == STORAGE_TYPE_LOCATION) {
 		const struct location_msg *loc = &item->data.LOCATION;
 
-		cloud_location_handle_message(loc);
+		//cloud_location_handle_message(loc);
 
 		return 0;
 	}
@@ -513,6 +513,7 @@ static int send_storage_data_to_cloud(const struct storage_data_item *item)
 
 	return -ENOTSUP;
 }
+
 
 static int request_storage_batch_data(uint32_t session_id)
 {
@@ -534,7 +535,7 @@ static int request_storage_batch_data(uint32_t session_id)
 	return 0;
 }
 
-/*Fake data used for testing*/
+/*
 static int drain_environmental_stream_raw(void)
 {
     int err;
@@ -560,7 +561,6 @@ static int drain_environmental_stream_raw(void)
         struct test_data data[10];
     } payload;
 
-    /* Generate garbage data for testing */
     for (size_t i = 0; i < 10; i++) {
         payload.count = 10;
         payload.sequence = (uint32_t)i;
@@ -597,16 +597,24 @@ static int drain_environmental_stream_raw(void)
     }
     return 0;
 }
-
+*/
 /*Reading raw data from file*/
-/*
+
 static void drain_environmental_stream_raw(void)
 {
+    if (is_draining) {
+        LOG_WRN("Drain already in progress, skipping");
+        return;
+    }
+
+    is_draining = true;   // lock
+
     struct fs_file_t file;
     fs_file_t_init(&file);
 
     if (fs_open(&file, "/att_storage/ENVIRONMENTAL_STREAM.bin", FS_O_READ) < 0) {
         LOG_ERR("Failed to open file");
+        is_draining = false;
         return;
     }
 
@@ -636,8 +644,10 @@ static void drain_environmental_stream_raw(void)
     } else {
         LOG_WRN("Drain incomplete. Data preserved for retry.");
     }
+
+    is_draining = false;  // unlock
 }
-*/
+
 static void handle_storage_batch_available(const struct storage_msg *msg)
 {
 	int err;
@@ -1217,6 +1227,12 @@ static void state_connected_ready_entry(void *obj)
 static enum smf_state_result state_connected_ready_run(void *obj)
 {
 	struct cloud_state_object const *state_object = obj;
+
+	if (is_draining) {
+        if (state_object->chan == &storage_chan || state_object->chan == &storage_data_chan) {
+            return SMF_EVENT_HANDLED; 
+        }
+    }
 
 	if (state_object->chan == &priv_cloud_chan) {
 		handle_priv_cloud_message(state_object);

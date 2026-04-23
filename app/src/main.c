@@ -108,6 +108,7 @@ static void timer_sample_start(uint32_t delay_sec);
 static void timer_send_data_start(uint32_t delay_sec);
 static void timer_sample_stop(void);
 static void timer_send_data_stop(void);
+static void sensor_triggers_send(void);
 
 /* Delayable work used to schedule triggers */
 static K_WORK_DELAYABLE_DEFINE(timer_send_data_work, timer_send_data_work_fn);
@@ -441,6 +442,7 @@ static void sampling_begin_common(struct main_state *state_object,
 
 	state_object->sample_start_time = k_uptime_seconds();
 
+	/*
 	err = zbus_chan_pub(&location_chan, &location_msg, PUB_TIMEOUT);
 	if (err) {
 		LOG_ERR("Failed to publish location search trigger, error: %d", err);
@@ -448,6 +450,8 @@ static void sampling_begin_common(struct main_state *state_object,
 
 		return;
 	}
+	*/
+	sensor_triggers_send();
 }
 
 static void waiting_entry_common(const struct main_state *state_object)
@@ -1124,6 +1128,7 @@ static void disconnected_sampling_entry(void *o)
 
 	LOG_DBG("%s", __func__);
 	sampling_begin_common(state_object, &states[STATE_DISCONNECTED_WAITING]);
+	sensor_triggers_send();
 }
 
 static enum smf_state_result disconnected_sampling_run(void *o)
@@ -1230,6 +1235,7 @@ static void connected_sampling_entry(void *o)
 
 	LOG_DBG("%s", __func__);
 	sampling_begin_common(state_object, &states[STATE_CONNECTED_WAITING]);
+	sensor_triggers_send();
 }
 
 static enum smf_state_result connected_sampling_run(void *o)
