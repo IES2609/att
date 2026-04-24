@@ -858,7 +858,7 @@ void environmental_stream_print_to_terminal(void)
 			double accel_lp_z_g = (double)msg.accel_lp[2][i] / ACCEL_SCALE;
 
 			/* Print as CSV row */
-			printk("%llu,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\n",
+			printk("%llu,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%.6f,%.6f,%.6f\n",
 				sample_timestamp,
 				accel_x_g, accel_y_g, accel_z_g,
 				gyro_x_dps, gyro_y_dps, gyro_z_dps,
@@ -866,7 +866,7 @@ void environmental_stream_print_to_terminal(void)
 				accel_lp_x_g, accel_lp_y_g, accel_lp_z_g);
 
 			/* Small delay to prevent serial buffer overflow - allow UART to drain */
-			k_usleep(2500);
+			k_usleep(3000);
 
 			record_count++;
 		}
