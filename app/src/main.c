@@ -1337,6 +1337,7 @@ static enum smf_state_result connected_sampling_run(void *o)
 		if (button_msg.type == BUTTON_PRESS_LONG) {
 			/* LONG press during sampling: delete file and return to waiting */
 			LOG_INF("Long button press during sampling - clearing environmental file");
+
 #ifdef CONFIG_APP_ENVIRONMENTAL
 			environmental_led_yellow_blinking();
 			storage_env_clear();
@@ -1430,8 +1431,9 @@ static enum smf_state_result connected_waiting_run(void *o)
 			/* LONG press: delete file contents and restart waiting delay */
 			LOG_INF("Long button press detected - clearing environmental file");
 #ifdef CONFIG_APP_ENVIRONMENTAL
-			environmental_led_yellow_blinking();
 			storage_env_clear();
+			environmental_led_yellow_blinking();
+			k_msleep(10000);
 #endif
 			/* Restart pre-sampling delay after deletion */
 			restart_sampling_with_presampling_delay(state_object);
