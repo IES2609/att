@@ -455,6 +455,28 @@ static void sampling_begin_common(struct main_state *state_object,
 	}
 }
 
+/* Restart sampling timer with a short pre-sampling delay instead of a full interval. */
+static void restart_sampling_with_presampling_delay(struct main_state *state_object)
+{
+	uint32_t delay_sec = 0U;
+
+#ifdef CONFIG_APP_ENVIRONMENTAL
+	delay_sec = CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS;
+#endif
+
+	if ((delay_sec == 0U) || (state_object->sample_interval_sec <= delay_sec)) {
+		state_object->sample_start_time = 0U;
+		LOG_DBG("Delete restart: immediate sampling trigger (delay=%u, interval=%u)",
+			delay_sec, state_object->sample_interval_sec);
+		return;
+	}
+
+	state_object->sample_start_time = k_uptime_seconds() -
+		(state_object->sample_interval_sec - delay_sec);
+
+	LOG_DBG("Delete restart: next sample in %u seconds", delay_sec);
+}
+
 static void waiting_entry_common(const struct main_state *state_object)
 {
 	uint32_t time_elapsed;
@@ -1123,6 +1145,16 @@ static enum smf_state_result disconnected_sampling_run(void *o)
 		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
 
 		if (button_msg.type == BUTTON_PRESS_SHORT) {
+			if (storage_full) {
+				LOG_INF("Storage full - short press: printing CSV");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				environmental_stream_print_to_terminal();
+#else
+				LOG_WRN("Environmental module not enabled");
+#endif
+				return SMF_EVENT_HANDLED;
+			}
+
 			/* Ignore short press while sampling */
 			return SMF_EVENT_HANDLED;
 		}
@@ -1131,8 +1163,11 @@ static enum smf_state_result disconnected_sampling_run(void *o)
 			/* LONG press during sampling: delete file and return to waiting */
 			LOG_INF("Long button press during sampling - clearing environmental file");
 #ifdef CONFIG_APP_ENVIRONMENTAL
+			environmental_led_yellow_blinking();
 			storage_env_clear();
 #endif
+			/* Restart pre-sampling delay after deletion */
+			restart_sampling_with_presampling_delay(state_object);
 			smf_set_state(SMF_CTX(state_object), &states[STATE_DISCONNECTED_WAITING]);
 			return SMF_EVENT_HANDLED;
 		}
@@ -1150,7 +1185,7 @@ static void disconnected_waiting_entry(void *o)
 	LOG_DBG("%s", __func__);
 	waiting_entry_common(state_object);
 
-#if defined(CONFIG_APP_LED)
+#if defined(CONFIG_APP_LED) && !defined(CONFIG_APP_ENVIRONMENTAL)
 	int err;
 	/* Red pattern indicating disconnected */
 	struct led_msg led_msg = {
@@ -1170,7 +1205,7 @@ static void disconnected_waiting_entry(void *o)
 
 		return;
 	}
-#endif /* CONFIG_APP_LED */
+#endif /* CONFIG_APP_LED && !CONFIG_APP_ENVIRONMENTAL */
 }
 
 static enum smf_state_result disconnected_waiting_run(void *o)
@@ -1181,6 +1216,14 @@ static enum smf_state_result disconnected_waiting_run(void *o)
 		enum timer_msg_type timer_type = MSG_TO_TIMER_TYPE(state_object->msg_buf);
 
 		if (timer_type == TIMER_EXPIRED_SAMPLE_DATA) {
+			if (storage_full) {
+				LOG_INF("Storage full - skipping sampling trigger");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				environmental_led_green_full();
+#endif
+				return SMF_EVENT_HANDLED;
+			}
+
 			smf_set_state(SMF_CTX(state_object),
 				      &states[STATE_DISCONNECTED_SAMPLING]);
 
@@ -1219,14 +1262,16 @@ static enum smf_state_result disconnected_waiting_run(void *o)
 		}
 
 		if (button_msg.type == BUTTON_PRESS_LONG) {
-			/* LONG press: delete file contents and restart */
+			/* LONG press: delete file contents and restart waiting delay */
 			LOG_INF("Long button press detected - clearing environmental file");
 #ifdef CONFIG_APP_ENVIRONMENTAL
+			environmental_led_yellow_blinking();
 			storage_env_clear();
-			/* Environmental module will set red LED when sampling resumes */
-			smf_set_state(SMF_CTX(state_object),
-				      &states[STATE_DISCONNECTED_SAMPLING]);
 #endif
+			/* Restart pre-sampling delay after deletion */
+			restart_sampling_with_presampling_delay(state_object);
+			smf_set_state(SMF_CTX(state_object),
+				      &states[STATE_DISCONNECTED_WAITING]);
 			return SMF_EVENT_HANDLED;
 		}
 	}
@@ -1275,6 +1320,16 @@ static enum smf_state_result connected_sampling_run(void *o)
 		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
 
 		if (button_msg.type == BUTTON_PRESS_SHORT) {
+			if (storage_full) {
+				LOG_INF("Storage full - short press: printing CSV");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				environmental_stream_print_to_terminal();
+#else
+				LOG_WRN("Environmental module not enabled");
+#endif
+				return SMF_EVENT_HANDLED;
+			}
+
 			/* Ignore short press while sampling */
 			return SMF_EVENT_HANDLED;
 		}
@@ -1283,8 +1338,11 @@ static enum smf_state_result connected_sampling_run(void *o)
 			/* LONG press during sampling: delete file and return to waiting */
 			LOG_INF("Long button press during sampling - clearing environmental file");
 #ifdef CONFIG_APP_ENVIRONMENTAL
+			environmental_led_yellow_blinking();
 			storage_env_clear();
 #endif
+			/* Restart pre-sampling delay after deletion */
+			restart_sampling_with_presampling_delay(state_object);
 			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_WAITING]);
 			return SMF_EVENT_HANDLED;
 		}
@@ -1323,6 +1381,14 @@ static enum smf_state_result connected_waiting_run(void *o)
 		enum timer_msg_type timer_type = MSG_TO_TIMER_TYPE(state_object->msg_buf);
 
 		if (timer_type == TIMER_EXPIRED_SAMPLE_DATA) {
+			if (storage_full) {
+				LOG_INF("Storage full - skipping sampling trigger");
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				environmental_led_green_full();
+#endif
+				return SMF_EVENT_HANDLED;
+			}
+
 			smf_set_state(SMF_CTX(state_object),
 				      &states[STATE_CONNECTED_SAMPLING]);
 
@@ -1361,14 +1427,16 @@ static enum smf_state_result connected_waiting_run(void *o)
 		}
 
 		if (button_msg.type == BUTTON_PRESS_LONG) {
-			/* LONG press: delete file contents and restart */
+			/* LONG press: delete file contents and restart waiting delay */
 			LOG_INF("Long button press detected - clearing environmental file");
 #ifdef CONFIG_APP_ENVIRONMENTAL
+			environmental_led_yellow_blinking();
 			storage_env_clear();
-			/* Environmental module will set red LED when sampling resumes */
-			smf_set_state(SMF_CTX(state_object),
-				      &states[STATE_CONNECTED_SAMPLING]);
 #endif
+			/* Restart pre-sampling delay after deletion */
+			restart_sampling_with_presampling_delay(state_object);
+			smf_set_state(SMF_CTX(state_object),
+				      &states[STATE_CONNECTED_WAITING]);
 			return SMF_EVENT_HANDLED;
 		}
 	}

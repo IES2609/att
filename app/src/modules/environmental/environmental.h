@@ -92,6 +92,16 @@ struct environmental_msg {
  */
 void environmental_stream_print_to_terminal(void);
 
+/**
+ * @brief Send yellow LED indicator for file deletion in progress
+ */
+void environmental_led_yellow_blinking(void);
+
+/**
+ * @brief Send green LED indicator for storage full state
+ */
+void environmental_led_green_full(void);
+
 
 #ifdef __cplusplus
 }

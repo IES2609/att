@@ -29,3 +29,8 @@ int environmental_msgq_read(struct environmental_msg *msg, k_timeout_t timeout)
 {
 	return k_msgq_get(&environmental_msgq, msg, timeout);
 }
+
+void environmental_msgq_clear(void)
+{
+	k_msgq_purge(&environmental_msgq);
+}

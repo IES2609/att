@@ -499,6 +499,7 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 
 /* Read and print environmental data stored in the dedicated stream file.
  * Displays first 10 records with timestamp, pressure, sample count, and first sample sensor values.
+ * TODO : remove?
  */
 static void environmental_stream_debug_print(void)
 {
@@ -587,7 +588,9 @@ static void environmental_stream_debug_print(void)
 	(void)fs_close(&file);
 }
 
-/* Public interface for shell commands */
+/* Public interface for shell commands 
+ * TODO : remove?
+ */
 void storage_env_print(void)
 {
 	environmental_stream_debug_print();
@@ -631,6 +634,7 @@ void storage_env_clear(void)
 	bytes_written = 0;
 	storage_full = false;
 	storage_full_notified = false;
+	environmental_msgq_clear();
 #endif
 
 	LOG_INF("=== Environmental File Clear Complete ===");
@@ -662,13 +666,17 @@ static int handle_environmental_direct(struct storage_state *state_object)
 			continue;
 		}
 
-		if (bytes_written + sizeof(msgs[msg_count]) > max_bytes) {
+		if (bytes_written + sizeof(msgs[msg_count]) >= max_bytes) {
 			LOG_WRN("Flash full limit reached, stopping handle_environmental_direct");
 			
 			/* Only publish notification once when transitioning to full */
 			if (!storage_full_notified) {
 				storage_full = true;
 				storage_full_notified = true;
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				environmental_msgq_clear();
+				environmental_led_green_full();
+#endif
 				int err;
 				struct storage_msg storage_msg = {
 					.type = STORAGE_THRESHOLD_REACHED,
@@ -723,13 +731,17 @@ static void handle_data_message(const struct storage_state *state_object,
 	LOG_INF("Data size: %zu", type->data_size);
 	LOG_INF("Bytes written: %zu", bytes_written);
 
-	if (bytes_written + type->data_size > max_bytes) {
+	if (bytes_written + type->data_size >= max_bytes) {
 		LOG_WRN("Flash full limit reached, stopping program");
 		
 		/* Only publish notification once when transitioning to full */
 		if (!storage_full_notified) {
 			storage_full = true;
 			storage_full_notified = true;
+#ifdef CONFIG_APP_ENVIRONMENTAL
+			environmental_msgq_clear();
+			environmental_led_green_full();
+#endif
 			int err;
 			struct storage_msg storage_msg = {
 				.type = STORAGE_THRESHOLD_REACHED,
@@ -847,6 +859,7 @@ static void storage_clear(void)
 	/* Reset capacity tracking */
 	bytes_written = 0;
 	storage_full = false;
+	storage_full_notified = false;
 	LOG_INF("=== Storage Clear Complete ===");
 }
 
@@ -1222,8 +1235,12 @@ static void state_running_entry(void *o)
 			env_stream.file_offset, env_stream.records_written);
 		/* Set tracking variables to match recovered state */
 		bytes_written = env_stream.file_offset;
-		if (bytes_written >= max_bytes) {
+		if ((bytes_written >= max_bytes) ||
+		    (bytes_written + sizeof(struct environmental_msg) >= max_bytes)) {
 			storage_full = true;
+			storage_full_notified = true;
+			environmental_msgq_clear();
+			environmental_led_green_full();
 			LOG_WRN("Storage full - recovered file is at capacity");
 		}
 	} else {
@@ -1232,8 +1249,7 @@ static void state_running_entry(void *o)
 		storage_full = false;
 	}
 
-	/* Debug: Read and display stored environmental data */
-	environmental_stream_debug_print();
+	/* Skip startup debug dump to avoid benign file-busy warnings during boot. */
 #endif /* CONFIG_APP_ENVIRONMENTAL */
 }
 
@@ -1456,6 +1472,14 @@ static void storage_thread(void)
 	/* Initialize the state machine */
 	smf_set_initial(SMF_CTX(&storage_state), &states[STATE_RUNNING]);
 
+	/* Force state entry/recovery before processing environmental msgq data. */
+	err = smf_run_state(SMF_CTX(&storage_state));
+	if (err) {
+		LOG_ERR("Initial smf_run_state(), error: %d", err);
+		SEND_FATAL_ERROR();
+		return;
+	}
+
 	/* Initialize environmental file access semaphore */
 	k_sem_init(&environmental_file_access_sem, 1, 1);
 
@@ -1476,6 +1500,11 @@ while (true) {
 			/* Flash is full - graceful stop, not fatal */
 			LOG_WRN("Storage full: environmental writes halted (Flash at capacity)");
 			storage_full = true;
+			if (!storage_full_notified) {
+				storage_full_notified = true;
+				environmental_msgq_clear();
+				environmental_led_green_full();
+			}
 		} else {
 			/* Other errors are fatal */
 			LOG_ERR("handle_environmental_direct failed: %d", drained);

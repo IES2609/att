@@ -73,6 +73,18 @@ static const struct led_msg led_green = {
 	.repetitions = -1
 };
 
+static const struct led_msg led_yellow = {
+	.type = LED_RGB_SET,
+	.red = 128, 
+	.green = 128, 
+	.blue = 0,      /* Yellow: file deletion in progress */
+	.duration_on_msec = 200, .duration_off_msec = 200,  /* Faster blinking for deletion */
+	.repetitions = 10   /* Short indication, then let normal state LED take over */
+};
+
+#define YELLOW_INDICATION_DURATION_MS \
+	(led_yellow.repetitions * (led_yellow.duration_on_msec + led_yellow.duration_off_msec))
+
 /* Helper function to send LED messages via zbus */
 static int send_led_message(const struct led_msg *led_msg)
 {
@@ -150,6 +162,7 @@ static void sample_collect_work_handler(struct k_work *work);
 static void env_sample_work_handler(struct k_work *work);
 static void startup_delay_work_handler(struct k_work *work);
 static void led_update_work_handler(struct k_work *work);
+static void led_restore_after_yellow_work_handler(struct k_work *work);
 static int sensors_init(const struct device *bmi270, const struct device *adxl367, const struct device *bme680);
 
 /* Tracking whether sampling has been started */
@@ -172,6 +185,22 @@ static K_WORK_DELAYABLE_DEFINE(sample_collect_work, sample_collect_work_handler)
 static K_WORK_DELAYABLE_DEFINE(env_sample_work, env_sample_work_handler);
 static K_WORK_DELAYABLE_DEFINE(startup_delay_work, startup_delay_work_handler);
 static K_WORK_DELAYABLE_DEFINE(led_update_work, led_update_work_handler);
+static K_WORK_DELAYABLE_DEFINE(led_restore_after_yellow_work, led_restore_after_yellow_work_handler);
+
+static void led_restore_after_yellow_work_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	if (storage_full) {
+		current_led = &led_green;
+		send_led_message(&led_green);
+		return;
+	}
+
+	if (current_led) {
+		send_led_message(current_led);
+	}
+}
 
 /* State machine no longer used - environmental is fully asynchronous */
 
@@ -468,6 +497,13 @@ static void startup_delay_work_handler(struct k_work *work)
 		return;
 	}
 
+	if (storage_full) {
+		LOG_INF("Storage is full, skipping environmental sampling startup");
+		current_led = &led_green;
+		send_led_message(&led_green);
+		return;
+	}
+
 	LOG_INF("Startup delay complete, beginning environmental sampling");
 
 	err = sensors_init(g_bmi270, g_adxl367, g_bme680);
@@ -703,9 +739,18 @@ static void env_module_thread(void)
 
 	/* Schedule sensor initialization and sampling start with configured delay */
 	uint32_t startup_delay_ms = CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS * MSEC_PER_SEC;
+
+	if (storage_full) {
+		LOG_INF("Storage full at startup, keeping sampling stopped");
+		current_led = &led_green;
+		send_led_message(&led_green);
+		startup_delay_ms = 0;
+	}
 	
 	/* Indicate LED status: purple if waiting for startup delay, red if starting immediately */
-	if (startup_delay_ms > 0) {
+	if (storage_full) {
+		/* Already handled above; keep green LED and do not schedule startup work. */
+	} else if (startup_delay_ms > 0) {
 		LOG_INF("Environmental sampling delayed by %u seconds", 
 			CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
 		current_led = &led_purple;
@@ -727,11 +772,14 @@ static void env_module_thread(void)
 		}
 	}
 
-	err = k_work_schedule_for_queue(&environmental_workqueue, &startup_delay_work, K_MSEC(startup_delay_ms));
-	if (err < 0) {
-		LOG_ERR("Failed to schedule startup delay work: %d", err);
-		SEND_FATAL_ERROR();
-		return;
+	if (!storage_full) {
+		err = k_work_schedule_for_queue(&environmental_workqueue, &startup_delay_work,
+						       K_MSEC(startup_delay_ms));
+		if (err < 0) {
+			LOG_ERR("Failed to schedule startup delay work: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
 	}
 
 	task_wdt_id = task_wdt_add(wdt_timeout_ms, env_wdt_callback, (void *)k_current_get());
@@ -882,6 +930,32 @@ void environmental_stream_print_to_terminal(void)
 
 	/* Resume normal storage operations */
 	terminal_export_in_progress = false;
+}
+
+/**
+ * @brief Send yellow LED indicator for file deletion in progress
+ */
+void environmental_led_yellow_blinking(void)
+{
+	LOG_INF("File deletion in progress - setting LED to yellow");
+	/* Keep persistent LED state as red, yellow is only a transient indication. */
+	current_led = &led_red;
+	send_led_message(&led_yellow);
+
+	/* Restore persistent LED immediately after yellow indication finishes. */
+	k_work_reschedule_for_queue(&environmental_workqueue,
+				    &led_restore_after_yellow_work,
+				    K_MSEC(YELLOW_INDICATION_DURATION_MS));
+}
+
+/**
+ * @brief Send green LED indicator for storage full state
+ */
+void environmental_led_green_full(void)
+{
+	LOG_INF("Storage full - setting LED to green");
+	current_led = &led_green;
+	send_led_message(&led_green);
 }
 
 K_THREAD_DEFINE(environmental_module_thread_id,

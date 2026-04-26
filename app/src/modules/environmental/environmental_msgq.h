@@ -38,6 +38,15 @@ int environmental_msgq_write(const struct environmental_msg *msg, k_timeout_t ti
  */
 int environmental_msgq_read(struct environmental_msg *msg, k_timeout_t timeout);
 
+/**
+ * @brief Purge all pending environmental batch messages from queue
+ *
+ * Clears any buffered batches that have not yet been consumed by storage.
+ * Useful when transitioning into storage-full state or after file deletion
+ * to avoid stale batches being written into a new series.
+ */
+void environmental_msgq_clear(void);
+
 #ifdef __cplusplus
 }
 #endif
