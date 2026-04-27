@@ -33,7 +33,7 @@ class CSVDataCapture:
     def __init__(self, port, baudrate=115200, timeout=5):
         """
         Initialize the CSV capture handler.
-        
+    
         Args:
             port: Serial port name (e.g., 'COM3' or '/dev/ttyACM0')
             baudrate: Serial communication baudrate (default: 115200)
@@ -83,11 +83,15 @@ class CSVDataCapture:
         header_found = False
         wait_start = time.monotonic()
         last_activity_time = wait_start
+        read_timeout_sec = 0.5
 
         # Header wait timeout (before we see any CSV stream).
         header_timeout_sec = 60.0 if self.baudrate >= 500000 else 30.0
         # After capture has started, finalize quickly when stream goes idle.
         stream_idle_timeout_sec = 2.0 if self.baudrate >= 500000 else 4.0
+
+        if self.serial_conn:
+            self.serial_conn.timeout = read_timeout_sec
         
         try:
             while True:
