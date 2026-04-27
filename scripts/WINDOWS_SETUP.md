@@ -52,12 +52,12 @@ project/scripts/
    
    Example:
    ```cmd
-   cd "C:\Users\YourName\Documents\Bachelor\Code\ff\asset-tracker-template\project\scripts"
+   cd "C:\path\to\att\scripts"
    ```
 
 3. Run the setup script:
    ```cmd
-   setup_env.bat
+   .\setup_env.bat
    ```
 
 4. Wait for it to complete (will show green checkmarks)

@@ -167,6 +167,10 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 
 /* Tracking whether sampling has been started */
 static bool sampling_started = false;
+/* Track whether one-time sensor trigger configuration has been completed. */
+static bool sensors_initialized = false;
+/* Track whether transient yellow deletion indication is currently active. */
+static bool yellow_indication_active = false;
 
 /* Track current LED color for periodic updates */
 static const struct led_msg *current_led = NULL;
@@ -190,6 +194,7 @@ static K_WORK_DELAYABLE_DEFINE(led_restore_after_yellow_work, led_restore_after_
 static void led_restore_after_yellow_work_handler(struct k_work *work)
 {
 	ARG_UNUSED(work);
+	yellow_indication_active = false;
 
 	if (storage_full) {
 		current_led = &led_green;
@@ -210,6 +215,11 @@ static void sample_publish_work_handler(struct k_work *work)
 	int err;
 
 	ARG_UNUSED(work);
+
+	if (!sampling_started) {
+		batch_msg.sample_count = 0;
+		return;
+	}
 
 	if (batch_msg.sample_count == 0) {
 		LOG_WRN("sample_publish_work_handler: batch_msg.sample_count is 0");
@@ -274,6 +284,10 @@ static void sample_collect_work_handler(struct k_work *work)
 	uint8_t idx;  /* Index into batch arrays */
 
 	ARG_UNUSED(work);
+
+	if (!sampling_started) {
+		return;
+	}
 
 	if (storage_full) {
 		LOG_DBG("sample_collect_work_handler: storage full, stopping IMU collection");
@@ -410,6 +424,10 @@ static void env_sample_work_handler(struct k_work *work)
 
 	ARG_UNUSED(work);
 
+	if (!sampling_started) {
+		return;
+	}
+
 	if (storage_full) {
 		LOG_DBG("env_sample_work_handler: storage full, stopping environmental sampling");
 		return;
@@ -456,6 +474,10 @@ reschedule_env:
 static void sensor_trigger_callback(const struct device *sensor, const struct sensor_trigger *trigger)
 {
 	ARG_UNUSED(trigger);
+
+	if (!sampling_started || storage_full) {
+		return;
+	}
 
 	LOG_DBG("Sensor data-ready trigger from %s, submitting sample work", sensor->name);
 	/* Offload work to environmental workqueue - keep ISR short.
@@ -506,10 +528,22 @@ static void startup_delay_work_handler(struct k_work *work)
 
 	LOG_INF("Startup delay complete, beginning environmental sampling");
 
-	err = sensors_init(g_bmi270, g_adxl367, g_bme680);
-	if (err) {
-		LOG_ERR("sensors_init failed: %d", err);
-		SEND_FATAL_ERROR();
+	if (!sensors_initialized) {
+		err = sensors_init(g_bmi270, g_adxl367, g_bme680);
+		if (err) {
+			LOG_ERR("sensors_init failed: %d", err);
+			SEND_FATAL_ERROR();
+		}
+
+		sensors_initialized = true;
+	} else {
+		/* Trigger-based IMU sampling will resume automatically once sampling_started is true. */
+		err = k_work_schedule_for_queue(&environmental_workqueue, &env_sample_work, K_NO_WAIT);
+		if (err < 0) {
+			LOG_ERR("Failed to restart env_sample_work: %d", err);
+			SEND_FATAL_ERROR();
+			return;
+		}
 	}
 
 	sampling_started = true;
@@ -938,14 +972,60 @@ void environmental_stream_print_to_terminal(void)
 void environmental_led_yellow_blinking(void)
 {
 	LOG_INF("File deletion in progress - setting LED to yellow");
-	/* Keep persistent LED state as red, yellow is only a transient indication. */
-	current_led = &led_red;
+	yellow_indication_active = true;
+	/* Yellow is transient; keep current persistent state unchanged. */
 	send_led_message(&led_yellow);
 
 	/* Restore persistent LED immediately after yellow indication finishes. */
 	k_work_reschedule_for_queue(&environmental_workqueue,
 				    &led_restore_after_yellow_work,
 				    K_MSEC(YELLOW_INDICATION_DURATION_MS));
+}
+
+void environmental_sampling_restart_with_delay(uint32_t delay_sec)
+{
+	int err;
+	uint32_t delay_ms = delay_sec * MSEC_PER_SEC;
+
+	LOG_INF("Restarting environmental sampling with %u s delay", delay_sec);
+
+	/* Pause all sampling/publishing paths immediately. */
+	sampling_started = false;
+	(void)k_work_cancel_delayable(&sample_collect_work);
+	(void)k_work_cancel_delayable(&sample_publish_work);
+	(void)k_work_cancel_delayable(&env_sample_work);
+	(void)k_work_cancel_delayable(&startup_delay_work);
+
+	/* Drop any partial batch in RAM to avoid immediate post-delete publish. */
+	batch_msg.sample_count = 0;
+	imu_sample_count = 0;
+
+	if (storage_full) {
+		current_led = &led_green;
+		send_led_message(&led_green);
+		return;
+	}
+
+	if (delay_ms > 0U) {
+		current_led = &led_purple;
+		if (!yellow_indication_active) {
+			send_led_message(&led_purple);
+		}
+		err = k_work_schedule_for_queue(&environmental_workqueue,
+					       &led_update_work,
+					       K_SECONDS(15));
+		if (err < 0) {
+			LOG_WRN("Failed to schedule LED update work during restart: %d", err);
+		}
+	}
+
+	err = k_work_schedule_for_queue(&environmental_workqueue,
+				       &startup_delay_work,
+				       K_MSEC(delay_ms));
+	if (err < 0) {
+		LOG_ERR("Failed to schedule startup delay work on restart: %d", err);
+		SEND_FATAL_ERROR();
+	}
 }
 
 /**

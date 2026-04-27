@@ -1165,6 +1165,8 @@ static enum smf_state_result disconnected_sampling_run(void *o)
 #ifdef CONFIG_APP_ENVIRONMENTAL
 			environmental_led_yellow_blinking();
 			storage_env_clear();
+			environmental_sampling_restart_with_delay(
+				CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
 #endif
 			/* Restart pre-sampling delay after deletion */
 			restart_sampling_with_presampling_delay(state_object);
@@ -1267,6 +1269,8 @@ static enum smf_state_result disconnected_waiting_run(void *o)
 #ifdef CONFIG_APP_ENVIRONMENTAL
 			environmental_led_yellow_blinking();
 			storage_env_clear();
+			environmental_sampling_restart_with_delay(
+				CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
 #endif
 			/* Restart pre-sampling delay after deletion */
 			restart_sampling_with_presampling_delay(state_object);
@@ -1341,6 +1345,8 @@ static enum smf_state_result connected_sampling_run(void *o)
 #ifdef CONFIG_APP_ENVIRONMENTAL
 			environmental_led_yellow_blinking();
 			storage_env_clear();
+			environmental_sampling_restart_with_delay(
+				CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
 #endif
 			/* Restart pre-sampling delay after deletion */
 			restart_sampling_with_presampling_delay(state_object);
@@ -1431,9 +1437,10 @@ static enum smf_state_result connected_waiting_run(void *o)
 			/* LONG press: delete file contents and restart waiting delay */
 			LOG_INF("Long button press detected - clearing environmental file");
 #ifdef CONFIG_APP_ENVIRONMENTAL
-			storage_env_clear();
 			environmental_led_yellow_blinking();
-			k_msleep(10000);
+			storage_env_clear();
+			environmental_sampling_restart_with_delay(
+				CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
 #endif
 			/* Restart pre-sampling delay after deletion */
 			restart_sampling_with_presampling_delay(state_object);

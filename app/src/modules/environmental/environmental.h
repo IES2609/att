@@ -102,6 +102,16 @@ void environmental_led_yellow_blinking(void);
  */
 void environmental_led_green_full(void);
 
+/**
+ * @brief Pause environmental sampling and restart it after a delay.
+ *
+ * This is used after file deletion to enforce a pre-sampling wait window
+ * before sampling resumes.
+ *
+ * @param delay_sec Delay in seconds before sampling is restarted.
+ */
+void environmental_sampling_restart_with_delay(uint32_t delay_sec);
+
 
 #ifdef __cplusplus
 }
