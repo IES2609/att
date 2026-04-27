@@ -45,13 +45,11 @@ class CSVDataCapture:
         self.timeout = timeout
         self.serial_conn = None
         self.csv_data = []
-        self.capturing = False
         
     def connect(self):
         """Establish serial connection."""
         try:
-            # For high baud rates (1M), increase timeout to get full lines
-            timeout_val = 1.0 if self.baudrate >= 500000 else 0.5
+            timeout_val = float(self.timeout)
             
             self.serial_conn = serial.Serial(
                 port=self.port,
@@ -82,32 +80,45 @@ class CSVDataCapture:
         print("   (Listening for CSV header...)\n")
         
         self.csv_data = []
-        self.capturing = False
         header_found = False
-        timeout_count = 0
-        # For 1M baud, data arrives very fast so we need more empty line tolerance
-        # For slower bauds, use moderate timeout
-        max_empty_lines = 100 if self.baudrate >= 500000 else 50  # Higher for 1M baud
+        wait_start = time.monotonic()
+        last_activity_time = wait_start
+
+        # Header wait timeout (before we see any CSV stream).
+        header_timeout_sec = 60.0 if self.baudrate >= 500000 else 30.0
+        # After capture has started, finalize quickly when stream goes idle.
+        stream_idle_timeout_sec = 2.0 if self.baudrate >= 500000 else 4.0
         
         try:
-            while timeout_count < max_empty_lines:
+            while True:
                 line = self._read_line()
+                now = time.monotonic()
                 
                 if not line:
-                    timeout_count += 1
-                    # Print progress indicator every 10 reads
-                    if timeout_count % 10 == 0:
-                        print(f"  Waiting... ({timeout_count * 0.1:.1f}s)")
+                    if not header_found:
+                        # Still waiting for CSV header.
+                        elapsed = now - wait_start
+                        if elapsed >= header_timeout_sec:
+                            break
+                    else:
+                        # Header found; stop capture when stream has been idle.
+                        idle_for = now - last_activity_time
+                        if idle_for >= stream_idle_timeout_sec:
+                            if len(self.csv_data) > 1:
+                                print(f"\n✓ CSV stream ended, finalizing capture")
+                            else:
+                                print("\n⚠ Header found but no data rows received before stream went idle")
+                            break
+
                     continue
                 
-                timeout_count = 0  # Reset timeout on any data
+                last_activity_time = now
                 
                 # Check for CSV header (exact match or flexible match)
                 if not header_found:
                     if line == self.CSV_HEADER:
                         print("✓ CSV header detected, capturing data...")
                         self.csv_data.append(line)
-                        self.capturing = True
                         header_found = True
                         continue
                     elif "timestamp_ms" in line and "accel_x_g" in line:
@@ -115,7 +126,6 @@ class CSVDataCapture:
                         print("✓ CSV header detected (flexible match), capturing data...")
                         print(f"  Header: {line}")
                         self.csv_data.append(line)
-                        self.capturing = True
                         header_found = True
                         continue
                     else:
@@ -123,22 +133,21 @@ class CSVDataCapture:
                         continue
                 
                 # Capture data rows after header
-                if header_found:
-                    # Check if line looks like CSV data (contains comma-separated numbers)
-                    if self._is_valid_csv_row(line):
-                        self.csv_data.append(line)
-                        row_num = len(self.csv_data) - 1
-                        # Only print every 10th row to reduce clutter
-                        if row_num % 10 == 0:
-                            print(f"  Captured {row_num} rows so far...")
-                    else:
-                        # Line doesn't look like CSV, might be log message or end of data
-                        if line and ("No environmental stream data" in line or "Error" in line or "error" in line.lower()):
-                            print(f"\n⚠ Device message: {line}")
-                            break
-                        # Skip log lines (they start with letters or brackets)
-                        elif line and (line[0].isalpha() or "[" in line):
-                            continue
+                # Check if line looks like CSV data (contains comma-separated numbers)
+                if self._is_valid_csv_row(line):
+                    self.csv_data.append(line)
+                    row_num = len(self.csv_data) - 1
+                    # Only print every 10th row to reduce clutter
+                    if row_num % 10 == 0:
+                        print(f"  Captured {row_num} rows so far...")
+                else:
+                    # Line doesn't look like CSV, might be log message or end of data
+                    if "No environmental stream data" in line or "Error" in line or "error" in line.lower():
+                        print(f"\n⚠ Device message: {line}")
+                        break
+                    # Skip log lines (they start with letters or brackets)
+                    if line[0].isalpha() or "[" in line:
+                        continue
             
             if len(self.csv_data) > 1:
                 print(f"\n✓ Captured {len(self.csv_data) - 1} data rows")
@@ -187,28 +196,6 @@ class CSVDataCapture:
         line = re.sub(r'^[a-z]+@[a-z-]+:~\$ ', '', line)
         
         return line.strip()
-    
-    def _debug_validate_row(self, line):
-        """Debug version of validation."""
-        if not line or ',' not in line:
-            return False, "No line or comma"
-        
-        try:
-            parts = line.split(',')
-            
-            if len(parts) < 8:
-                return False, f"Too few parts: {len(parts)}"
-            
-            first_val = float(parts[0])
-            if first_val < 0:
-                return False, f"Negative timestamp: {first_val}"
-            
-            float(parts[1])
-            float(parts[2])
-            
-            return True, "Valid"
-        except (ValueError, IndexError) as e:
-            return False, f"Exception: {e}"
     
     @staticmethod
     def _is_valid_csv_row(line):
