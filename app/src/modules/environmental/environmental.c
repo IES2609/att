@@ -232,7 +232,7 @@ static void sample_publish_work_handler(struct k_work *work)
 		return;
 	}
 
-	LOG_INF("Publishing batch with %d samples (msgq)",
+	LOG_DBG("Publishing batch with %d samples (msgq)",
 		batch_msg.sample_count);
 
 	/* Periodic debug print: show all sensor readings from first sample */
@@ -462,7 +462,7 @@ static void env_sample_work_handler(struct k_work *work)
 	double press_d = sensor_value_to_double(&press);
 	latest_pressure_pa = (int32_t)(press_d * 100);  /* Store as 0.01 kPa resolution */
 
-	LOG_INF("env_sample_work_handler: BME680 pressure sampled - press=%.2f kPa",
+	LOG_DBG("env_sample_work_handler: BME680 pressure sampled - press=%.2f kPa",
 		press_d);
 
 reschedule_env:
@@ -585,8 +585,8 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 
 		struct sensor_value full_scale, sampling_freq, oversampling;
 
-		/* Configure accelerometer: 2g full scale, FS Hz, 1x oversampling */
-		full_scale.val1 = 2;
+		/* Configure accelerometer: 8g full scale, FS Hz, 1x oversampling */
+		full_scale.val1 = 8;
 		full_scale.val2 = 0;
 		sampling_freq.val1 = FS;
 		sampling_freq.val2 = 0;
@@ -599,7 +599,7 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 		if (err) {
 			LOG_WRN("BMI270 accel configuration failed, error: %d", err);
 		} else {
-			LOG_DBG("BMI270 accel configured: 2g, %d Hz", FS);
+			LOG_DBG("BMI270 accel configured: 8g, %d Hz", FS);
 		}
 
 		/* Configure gyroscope: 500 dps full scale, FS Hz, 1x oversampling */
@@ -642,8 +642,8 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 
 		struct sensor_value full_scale, sampling_freq, oversampling;
 
-		/* Configure accelerometer: 4g full scale, FS Hz, 1x oversampling */
-		full_scale.val1 = 4;
+		/* Configure accelerometer: 8g full scale, FS Hz, 1x oversampling */
+		full_scale.val1 = 8;
 		full_scale.val2 = 0;
 		sampling_freq.val1 = FS;
 		sampling_freq.val2 = 0;
@@ -656,7 +656,7 @@ static int sensors_init(const struct device *bmi270, const struct device *adxl36
 		if (err) {
 			LOG_WRN("ADXL367 configuration failed, error: %d", err);
 		} else {
-			LOG_DBG("ADXL367 configured: 4g, %d Hz", FS);
+			LOG_DBG("ADXL367 configured: 8g, %d Hz", FS);
 		}
 
 		/* Perform a full sample fetch to initialize and wake up the sensor */
@@ -845,8 +845,8 @@ static void env_module_thread(void)
  * @brief Print environmental sensor data from storage to terminal in CSV format
  * 
  * Reads the entire environmental_stream.bin file and outputs sensor data
- * as CSV with columns: timestamp_ms, accel_x_g, accel_y_g, accel_z_g, 
- * gyro_x_dps, gyro_y_dps, gyro_z_dps, pressure_pa, accel_lp_x_g, accel_lp_y_g, accel_lp_z_g
+ * as CSV with columns: timestamp_ms, accel_x_m_s2, accel_y_m_s2, accel_z_m_s2, 
+ * gyro_x_rad_s, gyro_y_rad_s, gyro_z_rad_s, pressure_kpa, accel_lp_x_m_s2, accel_lp_y_m_s2, accel_lp_z_m_s2
  */
 void environmental_stream_print_to_terminal(void)
 {
@@ -875,8 +875,8 @@ void environmental_stream_print_to_terminal(void)
 
 	LOG_INF("File found, size: %u bytes", entry.size);
 
-	/* Print CSV header */
-	printk("timestamp_ms,accel_x_g,accel_y_g,accel_z_g,gyro_x_dps,gyro_y_dps,gyro_z_dps,pressure_kpa,accel_lp_x_g,accel_lp_y_g,accel_lp_z_g\n");
+	/* Print CSV header (units: timestamp ms, accel/accel_lp m/s^2, gyro rad/s, pressure kPa) */
+	printk("timestamp_ms,accel_x_m_s2,accel_y_m_s2,accel_z_m_s2,gyro_x_rad_s,gyro_y_rad_s,gyro_z_rad_s,pressure_kpa,accel_lp_x_m_s2,accel_lp_y_m_s2,accel_lp_z_m_s2\n");
 
 	/* Acquire semaphore to get exclusive access to file - retry up to 10 times */
 	int max_retries = 30;
@@ -940,7 +940,7 @@ void environmental_stream_print_to_terminal(void)
 			double accel_lp_z_g = (double)msg.accel_lp[2][i] / ACCEL_SCALE;
 
 			/* Print as CSV row */
-			printk("%llu,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.3f,%.6f,%.6f,%.6f\n",
+			printk("%llu,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\n",
 				sample_timestamp,
 				accel_x_g, accel_y_g, accel_z_g,
 				gyro_x_dps, gyro_y_dps, gyro_z_dps,

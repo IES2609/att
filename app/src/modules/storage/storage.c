@@ -131,7 +131,7 @@ static bool storage_full_notified = false;
 /* 0xF00000: Roughly 60% of above value 
    0x180000: Roughly 6% of above value, for debugging
    0x26660: Roughly 1.5% of above value, for debugging */
-static size_t max_bytes = 0x1800000; //Roughly 10% margin (LittleFS has overhead)
+static size_t max_bytes = 0x13330; //Roughly 10% margin (LittleFS has overhead)
 
 /* Flag to pause environmental writes during terminal export */
 bool terminal_export_in_progress = false;
