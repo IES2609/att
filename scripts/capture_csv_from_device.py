@@ -28,7 +28,7 @@ import time
 class CSVDataCapture:
     """Captures CSV data from device serial port."""
     
-    CSV_HEADER = "timestamp_ms,accel_x_g,accel_y_g,accel_z_g,gyro_x_dps,gyro_y_dps,gyro_z_dps,pressure_kpa,accel_lp_x_g,accel_lp_y_g,accel_lp_z_g"
+    CSV_HEADER = "timestamp_ms,accel_x_m_s2,accel_y_m_s2,accel_z_m_s2,gyro_x_rad_s,gyro_y_rad_s,gyro_z_rad_s,pressure_kpa,accel_lp_x_m_s2,accel_lp_y_m_s2,accel_lp_z_m_s2"
     
     def __init__(self, port, baudrate=115200, timeout=5):
         """

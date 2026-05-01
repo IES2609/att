@@ -406,10 +406,14 @@ static void sample_collect_work_handler(struct k_work *work)
 	/* Increment sample count */
 	batch_msg.sample_count++;
 
-	/* Trigger publish when batch is full */
+	/* Trigger publish when batch is full - publish immediately to avoid
+	 * scheduling delay/race that can cause collection to see a full batch
+	 * and emit "Batch buffer full" warnings. Call publish handler inline
+	 * so msgq write is performed synchronously from the collection path.
+	 */
 	if (batch_msg.sample_count >= SAMPLES_PER_BATCH) {
-		LOG_DBG("Batch full (%d samples), submitting publish work", batch_msg.sample_count);
-		k_work_schedule_for_queue(&environmental_workqueue, &sample_publish_work, K_NO_WAIT);
+		LOG_DBG("Batch full (%d samples), publishing", batch_msg.sample_count);
+		sample_publish_work_handler(NULL);
 	}
 
 	/* Work completes without rescheduling - only fires on interrupt triggers */

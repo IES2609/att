@@ -1160,16 +1160,12 @@ static enum smf_state_result disconnected_sampling_run(void *o)
 		}
 
 		if (button_msg.type == BUTTON_PRESS_LONG) {
-			/* LONG press during sampling: delete file and return to waiting */
-			LOG_INF("Long button press during sampling - clearing environmental file");
+			/* LONG press during sampling: pause sampling and enter print/delete mode */
+			LOG_INF("Long button press during sampling - pausing sampling");
+			storage_full = true;
 #ifdef CONFIG_APP_ENVIRONMENTAL
-			environmental_led_yellow_blinking();
-			storage_env_clear();
-			environmental_sampling_restart_with_delay(
-				CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
+			environmental_led_green_full();
 #endif
-			/* Restart pre-sampling delay after deletion */
-			restart_sampling_with_presampling_delay(state_object);
 			smf_set_state(SMF_CTX(state_object), &states[STATE_DISCONNECTED_WAITING]);
 			return SMF_EVENT_HANDLED;
 		}
@@ -1339,17 +1335,13 @@ static enum smf_state_result connected_sampling_run(void *o)
 		}
 
 		if (button_msg.type == BUTTON_PRESS_LONG) {
-			/* LONG press during sampling: delete file and return to waiting */
-			LOG_INF("Long button press during sampling - clearing environmental file");
+			/* LONG press during sampling: pause sampling and enter print/delete mode */
+			LOG_INF("Long button press during sampling - pausing sampling");
+			storage_full = true;
 
 #ifdef CONFIG_APP_ENVIRONMENTAL
-			environmental_led_yellow_blinking();
-			storage_env_clear();
-			environmental_sampling_restart_with_delay(
-				CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
+			environmental_led_green_full();
 #endif
-			/* Restart pre-sampling delay after deletion */
-			restart_sampling_with_presampling_delay(state_object);
 			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_WAITING]);
 			return SMF_EVENT_HANDLED;
 		}
