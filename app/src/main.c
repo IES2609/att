@@ -41,6 +41,9 @@ LOG_MODULE_REGISTER(main, 4);
 /* Register subscriber */
 ZBUS_MSG_SUBSCRIBER_DEFINE(main_subscriber);
 
+/* Track whether user has paused sampling via long press (separate from storage_full) */
+static bool paused_by_user = false;
+
 enum timer_msg_type {
 	/* Timer for sampling data has expired.
 	 * This timer is used to trigger the sampling of data from the sensors.
@@ -405,6 +408,13 @@ static void sampling_begin_common(struct main_state *state_object,
 	};
 	uint32_t current_time = k_uptime_seconds();
 	uint32_t time_elapsed = current_time - state_object->sample_start_time;
+
+	/* Reset storage_full flag when entering sampling state.
+	 * This flag was used as a pause signal during sampling (user long-press),
+	 * but should be cleared when restarting to avoid confusing it with
+	 * actual storage capacity exhaustion.
+	 */
+	storage_full = false;
 
 	if ((state_object->sample_start_time > 0) &&
 	    (time_elapsed < state_object->sample_interval_sec) &&
@@ -1162,9 +1172,9 @@ static enum smf_state_result disconnected_sampling_run(void *o)
 		if (button_msg.type == BUTTON_PRESS_LONG) {
 			/* LONG press during sampling: pause sampling and enter print/delete mode */
 			LOG_INF("Long button press during sampling - pausing sampling");
-			storage_full = true;
+			paused_by_user = true;
 #ifdef CONFIG_APP_ENVIRONMENTAL
-			environmental_led_green_full();
+			environmental_sampling_pause();
 #endif
 			smf_set_state(SMF_CTX(state_object), &states[STATE_DISCONNECTED_WAITING]);
 			return SMF_EVENT_HANDLED;
@@ -1241,10 +1251,10 @@ static enum smf_state_result disconnected_waiting_run(void *o)
 		struct button_msg button_msg = MSG_TO_BUTTON_MSG(state_object->msg_buf);
 
 		if (button_msg.type == BUTTON_PRESS_SHORT) {
-			/* SHORT press behavior depends on storage state */
-			if (storage_full) {
-				/* If storage full, print CSV file to terminal */
-				LOG_INF("Storage full - short press: printing CSV");
+			/* SHORT press behavior depends on pause state */
+			if (paused_by_user) {
+				/* If paused, print CSV file to terminal */
+				LOG_INF("Paused - short press: printing CSV");
 #ifdef CONFIG_APP_ENVIRONMENTAL
 				environmental_stream_print_to_terminal();
 #else
@@ -1260,18 +1270,33 @@ static enum smf_state_result disconnected_waiting_run(void *o)
 		}
 
 		if (button_msg.type == BUTTON_PRESS_LONG) {
-			/* LONG press: delete file contents and restart waiting delay */
-			LOG_INF("Long button press detected - clearing environmental file");
+			/* LONG press behavior depends on storage state:
+			 * - If storage_full == true: user is paused, delete file and restart
+			 * - If storage_full == false: user presses to pause (even if in waiting state),
+			 *   environmental sampling may still be happening autonomously.
+			 */
+			if (storage_full) {
+				/* Already paused - delete and restart */
+				LOG_INF("Long button press - paused state: clearing environmental file");
 #ifdef CONFIG_APP_ENVIRONMENTAL
-			environmental_led_yellow_blinking();
-			storage_env_clear();
-			environmental_sampling_restart_with_delay(
-				CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
+				environmental_led_yellow_blinking();
+				storage_env_clear();
+				/* Reset storage_full flag BEFORE restart so environmental module knows to actually restart */
+				storage_full = false;
+				environmental_sampling_restart_with_delay(
+					CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
 #endif
-			/* Restart pre-sampling delay after deletion */
-			restart_sampling_with_presampling_delay(state_object);
-			smf_set_state(SMF_CTX(state_object),
-				      &states[STATE_DISCONNECTED_WAITING]);
+				/* Restart pre-sampling delay after deletion */
+				restart_sampling_with_presampling_delay(state_object);
+			} else {
+				/* Not paused yet - treat as pause request */
+				LOG_INF("Long button press - pausing environmental sampling");
+				storage_full = true;
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				/* Stop sampling so file can be safely read for printing */
+				environmental_sampling_pause();
+#endif
+			}
 			return SMF_EVENT_HANDLED;
 		}
 	}
@@ -1337,10 +1362,9 @@ static enum smf_state_result connected_sampling_run(void *o)
 		if (button_msg.type == BUTTON_PRESS_LONG) {
 			/* LONG press during sampling: pause sampling and enter print/delete mode */
 			LOG_INF("Long button press during sampling - pausing sampling");
-			storage_full = true;
-
+			paused_by_user = true;
 #ifdef CONFIG_APP_ENVIRONMENTAL
-			environmental_led_green_full();
+			environmental_sampling_pause();
 #endif
 			smf_set_state(SMF_CTX(state_object), &states[STATE_CONNECTED_WAITING]);
 			return SMF_EVENT_HANDLED;
@@ -1426,18 +1450,33 @@ static enum smf_state_result connected_waiting_run(void *o)
 		}
 
 		if (button_msg.type == BUTTON_PRESS_LONG) {
-			/* LONG press: delete file contents and restart waiting delay */
-			LOG_INF("Long button press detected - clearing environmental file");
+			/* LONG press behavior depends on storage state:
+			 * - If storage_full == true: user is paused, delete file and restart
+			 * - If storage_full == false: user presses to pause (even if in waiting state),
+			 *   environmental sampling may still be happening autonomously.
+			 */
+			if (storage_full) {
+				/* Already paused - delete and restart */
+				LOG_INF("Long button press - paused state: clearing environmental file");
 #ifdef CONFIG_APP_ENVIRONMENTAL
-			environmental_led_yellow_blinking();
-			storage_env_clear();
-			environmental_sampling_restart_with_delay(
-				CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
+				environmental_led_yellow_blinking();
+				storage_env_clear();
+				/* Reset storage_full flag BEFORE restart so environmental module knows to actually restart */
+				storage_full = false;
+				environmental_sampling_restart_with_delay(
+					CONFIG_APP_ENVIRONMENTAL_STARTUP_DELAY_SECONDS);
 #endif
-			/* Restart pre-sampling delay after deletion */
-			restart_sampling_with_presampling_delay(state_object);
-			smf_set_state(SMF_CTX(state_object),
-				      &states[STATE_CONNECTED_WAITING]);
+				/* Restart pre-sampling delay after deletion */
+				restart_sampling_with_presampling_delay(state_object);
+			} else {
+				/* Not paused yet - treat as pause request */
+				LOG_INF("Long button press - pausing environmental sampling");
+				storage_full = true;
+#ifdef CONFIG_APP_ENVIRONMENTAL
+				/* Stop sampling so file can be safely read for printing */
+				environmental_sampling_pause();
+#endif
+			}
 			return SMF_EVENT_HANDLED;
 		}
 	}

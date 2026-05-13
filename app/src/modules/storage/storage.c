@@ -136,6 +136,9 @@ static size_t max_bytes = 0x1800000; //Roughly 10% margin (LittleFS has overhead
 /* Flag to pause environmental writes during terminal export */
 bool terminal_export_in_progress = false;
 
+/* Flag to prevent environmental writes during user pause (separate from terminal export) */
+bool environmental_pause_in_progress = false;
+
 /* Semaphore to synchronize file access between storage and terminal export */
 struct k_sem environmental_file_access_sem;
 
@@ -445,9 +448,16 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 
 	write_start_ms = k_uptime_get();
 
+	/* Acquire semaphore to ensure exclusive file access (prevents conflicts with terminal export) */
+	if (k_sem_take(&environmental_file_access_sem, K_SECONDS(5)) != 0) {
+		LOG_WRN("Failed to acquire file access semaphore (export in progress?)");
+		return -EBUSY;
+	}
+
 	ret = fs_open(&file, ENV_STREAM_FILE_PATH, FS_O_CREATE | FS_O_RDWR);
 	if (ret < 0) {
 		LOG_ERR("Failed to open %s: %d", ENV_STREAM_FILE_PATH, ret);
+		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
@@ -455,6 +465,7 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 	if (ret < 0) {
 		LOG_ERR("Failed to seek %s: %d", ENV_STREAM_FILE_PATH, ret);
 		(void)fs_close(&file);
+		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
@@ -462,18 +473,21 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 	if (ret < 0) {
 		LOG_ERR("Failed to write environmental stream: %d", ret);
 		(void)fs_close(&file);
+		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
 	if ((size_t)ret != total_size) {
 		LOG_ERR("Short write to environmental stream: %d/%zu", ret, total_size);
 		(void)fs_close(&file);
+		k_sem_give(&environmental_file_access_sem);
 		return -EIO;
 	}
 
 	ret = fs_close(&file);
 	if (ret < 0) {
 		LOG_ERR("Failed to close %s: %d", ENV_STREAM_FILE_PATH, ret);
+		k_sem_give(&environmental_file_access_sem);
 		return ret;
 	}
 
@@ -494,6 +508,7 @@ static int environmental_stream_store_bulk(const struct environmental_msg *msgs,
 		env_stream.write_count = 0;
 	}
 
+	k_sem_give(&environmental_file_access_sem);
 	return 0;
 }
 
@@ -604,6 +619,12 @@ void storage_env_clear(void)
 	LOG_INF("=== Environmental File Clear Starting ===");
 
 #ifdef CONFIG_APP_ENVIRONMENTAL
+	/* Acquire semaphore to ensure exclusive file access during deletion */
+	if (k_sem_take(&environmental_file_access_sem, K_SECONDS(5)) != 0) {
+		LOG_WRN("Failed to acquire file access semaphore for deletion");
+		return;
+	}
+
 	/* Log final file size before deletion */
 	log_environmental_stream_size();
 	
@@ -618,11 +639,15 @@ void storage_env_clear(void)
 		err = fs_unlink(ENV_STREAM_FILE_PATH);
 		if (err < 0) {
 			LOG_ERR("Failed to delete %s: %d", ENV_STREAM_FILE_PATH, err);
+			k_sem_give(&environmental_file_access_sem);
 			SEND_FATAL_ERROR();
 		} else {
 			LOG_INF("Environmental stream file deleted successfully");
 		}
 	}
+
+	/* Release semaphore */
+	k_sem_give(&environmental_file_access_sem);
 
 	/* Reset environmental stream tracking */
 	env_stream.initialized = false;
@@ -1494,26 +1519,29 @@ while (true) {
 	}
 
 #ifdef CONFIG_APP_ENVIRONMENTAL
-	int drained = handle_environmental_direct(&storage_state);
-	if (drained < 0) {
-		if (drained == -ENOSPC || storage_full) {
-			/* Flash is full - graceful stop, not fatal */
-			LOG_WRN("Storage full: environmental writes halted (Flash at capacity)");
-			storage_full = true;
-			if (!storage_full_notified) {
-				storage_full_notified = true;
-				environmental_msgq_clear();
-				environmental_led_green_full();
+	/* Skip environmental writes if terminal export or user pause is in progress to avoid file locking */
+	if (!terminal_export_in_progress && !environmental_pause_in_progress) {
+		int drained = handle_environmental_direct(&storage_state);
+		if (drained < 0) {
+			if (drained == -ENOSPC || storage_full) {
+				/* Flash is full - graceful stop, not fatal */
+				LOG_WRN("Storage full: environmental writes halted (Flash at capacity)");
+				storage_full = true;
+				if (!storage_full_notified) {
+					storage_full_notified = true;
+					environmental_msgq_clear();
+					environmental_led_green_full();
+				}
+			} else {
+				/* Other errors are fatal */
+				LOG_ERR("handle_environmental_direct failed: %d", drained);
+				SEND_FATAL_ERROR();
+				return;
 			}
-		} else {
-			/* Other errors are fatal */
-			LOG_ERR("handle_environmental_direct failed: %d", drained);
-			SEND_FATAL_ERROR();
-			return;
 		}
-	}
-	if (drained > 0) {
-		did_work = true;
+		if (drained > 0) {
+			did_work = true;
+		}
 	}
 #endif
 

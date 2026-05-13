@@ -22,6 +22,9 @@ extern bool storage_full;
 /* Flag to pause environmental writes during terminal export */
 extern bool terminal_export_in_progress;
 
+/* Flag to pause environmental writes during user pause state */
+extern bool environmental_pause_in_progress;
+
 /* Semaphore to synchronize file access between storage and terminal export */
 extern struct k_sem environmental_file_access_sem;
 

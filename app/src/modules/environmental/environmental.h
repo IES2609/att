@@ -103,6 +103,14 @@ void environmental_led_yellow_blinking(void);
 void environmental_led_green_full(void);
 
 /**
+ * @brief Pause environmental sampling (stop collecting data without restarting).
+ *
+ * Stops sensor triggers, cancels pending work, and clears any partial batch.
+ * Used when user requests to view/export data without restarting.
+ */
+void environmental_sampling_pause(void);
+
+/**
  * @brief Pause environmental sampling and restart it after a delay.
  *
  * This is used after file deletion to enforce a pre-sampling wait window

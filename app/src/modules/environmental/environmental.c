@@ -552,6 +552,10 @@ static void startup_delay_work_handler(struct k_work *work)
 
 	sampling_started = true;
 
+	/* Clear pause flag when sampling actually resumes */
+	extern bool environmental_pause_in_progress;
+	environmental_pause_in_progress = false;
+
 	/* Indicate sampling is now active with red LED */
 	current_led = &led_red;
 	send_led_message(&led_red);
@@ -862,6 +866,9 @@ void environmental_stream_print_to_terminal(void)
 	struct fs_dirent entry;
 	const char *filepath = "/att_storage/ENVIRONMENTAL_STREAM.bin";
 
+	/* Initialize file structure */
+	fs_file_t_init(&file);
+
 	/* Signal storage module to pause environmental writes during export */
 	terminal_export_in_progress = true;
 
@@ -984,6 +991,52 @@ void environmental_led_yellow_blinking(void)
 	k_work_reschedule_for_queue(&environmental_workqueue,
 				    &led_restore_after_yellow_work,
 				    K_MSEC(YELLOW_INDICATION_DURATION_MS));
+}
+
+/**
+ * @brief Pause environmental sampling (stop collecting data without restarting).
+ *
+ * Stops sensor triggers, cancels pending work, and clears any partial batch.
+ * Used when user requests to view/export data without restarting.
+ */
+void environmental_sampling_pause(void)
+{
+	LOG_INF("Pausing environmental sampling");
+
+	/* Stop accepting new sensor triggers */
+	sampling_started = false;
+
+	/* Signal storage thread to pause writes to avoid file locking during read */
+	extern bool environmental_pause_in_progress;
+	environmental_pause_in_progress = true;
+
+	/* Cancel any pending work to prevent writes to file */
+	(void)k_work_cancel_delayable(&sample_collect_work);
+	(void)k_work_cancel_delayable(&sample_publish_work);
+	(void)k_work_cancel_delayable(&env_sample_work);
+	(void)k_work_cancel_delayable(&startup_delay_work);
+
+	/* Acquire semaphore to ensure any in-flight writes complete before continuing.
+	 * This guarantees the file is not being accessed by storage thread.
+	 */
+	extern struct k_sem environmental_file_access_sem;
+	if (k_sem_take(&environmental_file_access_sem, K_SECONDS(10)) == 0) {
+		/* File is now exclusively ours. Release it immediately - we just needed to
+		 * ensure any write-in-progress completed. The pause flag will prevent new writes.
+		 */
+		k_sem_give(&environmental_file_access_sem);
+		LOG_DBG("Pause: confirmed file access, storage writes halted");
+	} else {
+		LOG_WRN("Pause: timeout waiting for file access (write may be slow)");
+	}
+
+	/* Drop any partial batch to avoid post-pause publish */
+	batch_msg.sample_count = 0;
+	imu_sample_count = 0;
+
+	/* Set LED to green to indicate paused state */
+	current_led = &led_green;
+	send_led_message(&led_green);
 }
 
 void environmental_sampling_restart_with_delay(uint32_t delay_sec)
