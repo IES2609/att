@@ -380,30 +380,10 @@ def main() -> int:
             return 1
 
     raw_messages = list(iter_message_objects(payload))
-    
-    # --- NYE VARIABLER FOR ANALYSE ---
-    total_raw_bytes_received = 0
-    total_bytes_attempted_decoded = 0
-    # ---------------------------------
-
     decoded: List[Dict[str, Any]] = []
     decoded_messages = 0
-    
     for msg in raw_messages:
-        # Finn rådata-lengden i denne spesifikke meldingen før dekoding for analyse
-        msg_raw_bytes = 0
-        for b_cand in _possible_payload_bytes(msg):
-            msg_raw_bytes = max(msg_raw_bytes, len(b_cand))
-        for s_cand in _possible_payload_strings(msg):
-            for decoded_cand in _decode_candidate_string(s_cand):
-                msg_raw_bytes = max(msg_raw_bytes, len(decoded_cand))
-        
-        total_raw_bytes_received += msg_raw_bytes
-
-        # Dekoding
         decoded_msg = decode_test_data_from_message(msg)
-        total_bytes_attempted_decoded += decoded_msg["payload"]["raw_payload_length"]
-        
         decoded_payloads = decoded_msg["records"]
         payload_info = decoded_msg["payload"]
 
@@ -425,42 +405,26 @@ def main() -> int:
                     }
                 )
 
-    # --- UTSKRIFT AV ANALYSE ---
-    print("\n" + "="*40)
-    print(" RAW DATA ANALYSE")
-    print("-"*40)
-    print(f"Meldinger hentet:          {len(raw_messages)}")
-    print(f"Totalt mottatt fra API:    {total_raw_bytes_received} bytes ({total_raw_bytes_received / 1024 / 1024:.2f} MB)")
-    print(f"Bytes sendt til dekoder:   {total_bytes_attempted_decoded} bytes")
-    print(f"Antall dekodede samples:   {len(decoded)}")
-    
-    expected_3mb = 3145728 # 3 * 1024 * 1024
-    if total_raw_bytes_received < expected_3mb * 0.9:
-        print("\n[!] ADVARSEL: Du mottok betydelig mindre enn 3MB.")
-        print(f"    Sjekk om '--minutes {args.minutes}' dekker hele tidsrommet for sendingen.")
-    elif len(decoded) < (total_bytes_attempted_decoded / 80) * 0.9:
-        print("\n[!] INFO: Data er mottatt, men mange bytes ble forkastet under dekoding.")
-        print("    Dette skjer ofte hvis 'record_size' (80 bytes) ikke går opp i pakkelengden.")
-    print("="*40 + "\n")
-
     result = {
         "requested_minutes": args.minutes,
-        "total_bytes_received": total_raw_bytes_received,
         "fetched_count": len(raw_messages),
         "decoded_messages_count": decoded_messages,
         "decoded_count": len(decoded),
+        "undecoded_messages_count": len(raw_messages) - decoded_messages,
         "samples": decoded,
     }
-    
+    output_json = json.dumps(result, indent=2)
+
     try:
         with open(args.output, "w") as f:
-            json.dump(result, f, indent=2)
-        print(f"Lagret resultat til {args.output}")
+            f.write(output_json)
+        print(f"Saved {len(decoded)} decoded samples to {args.output}")
     except IOError as e:
         print(f"Failed to write to {args.output}: {e}", file=sys.stderr)
         return 1
 
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
